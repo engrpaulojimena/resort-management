@@ -82,11 +82,12 @@ const rooms = [
 
 const policies = [
   { label: 'Check-in', value: '2:00 PM' },
-  { label: 'Check-out', value: '12:00 PM (noon)' },
-  { label: 'Cancellation', value: '48 hours notice' },
-  { label: 'Children', value: 'All ages welcome' },
+  { label: 'Check-out', value: '11:00 AM' },
+  { label: 'Security Deposit', value: '₱2,000 per room' },
+  { label: 'Cancellation', value: 'Free 10+ days before arrival' },
+  { label: 'Children', value: 'Welcome, must be supervised' },
   { label: 'Pets', value: 'Not allowed' },
-  { label: 'Smoking', value: 'Designated areas only' },
+  { label: 'Smoking', value: 'Strictly prohibited indoors' },
 ]
 
 function RoomGallery({ images, name }: { images: string[]; name: string }) {
@@ -358,7 +359,9 @@ export default function AccommodationsClient() {
             ))}
           </div>
           <p className="text-center text-gray-400 text-sm mt-6">
-            For special requests or group bookings, please{' '}
+            See the full{' '}
+            <Link href="/policies" className="text-ocean-500 hover:underline font-medium">house rules and booking terms</Link>
+            {' '}or, for special requests or group bookings, please{' '}
             <Link href="/contact" className="text-ocean-500 hover:underline font-medium">contact us directly</Link>.
           </p>
         </div>

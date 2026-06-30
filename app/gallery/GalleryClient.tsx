@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
-import { X, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, ZoomIn, Waves, Sunset, BedDouble, Building2, Sparkles, ImageOff } from 'lucide-react'
 
 type Category = 'All' | 'Pool' | 'Sunset' | 'Rooms' | 'Exterior'
 
@@ -112,12 +112,12 @@ const photos: GalleryPhoto[] = [
 
 const categories: Category[] = ['All', 'Pool', 'Sunset', 'Rooms', 'Exterior']
 
-const categoryEmoji: Record<Category, string> = {
-  All: '🌟',
-  Pool: '🏊',
-  Sunset: '🌅',
-  Rooms: '🛏️',
-  Exterior: '🏠',
+const categoryIcons: Record<Category, any> = {
+  All: Sparkles,
+  Pool: Waves,
+  Sunset: Sunset,
+  Rooms: BedDouble,
+  Exterior: Building2,
 }
 
 export default function GalleryClient() {
@@ -129,9 +129,20 @@ export default function GalleryClient() {
     : photos.filter((p) => p.category === activeCategory)
 
   const openLightbox = (index: number) => setLightboxIndex(index)
-  const closeLightbox = () => setLightboxIndex(null)
-  const prevPhoto = () => setLightboxIndex((i) => (i !== null ? (i - 1 + filtered.length) % filtered.length : null))
-  const nextPhoto = () => setLightboxIndex((i) => (i !== null ? (i + 1) % filtered.length : null))
+  const closeLightbox = useCallback(() => setLightboxIndex(null), [])
+  const prevPhoto = useCallback(() => setLightboxIndex((i) => (i !== null ? (i - 1 + filtered.length) % filtered.length : null)), [filtered.length])
+  const nextPhoto = useCallback(() => setLightboxIndex((i) => (i !== null ? (i + 1) % filtered.length : null)), [filtered.length])
+
+  useEffect(() => {
+    if (lightboxIndex === null) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox()
+      if (e.key === 'ArrowLeft') prevPhoto()
+      if (e.key === 'ArrowRight') nextPhoto()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [lightboxIndex, closeLightbox, prevPhoto, nextPhoto])
 
   return (
     <>
@@ -166,19 +177,21 @@ export default function GalleryClient() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-2 overflow-x-auto scrollbar-hide">
           {categories.map((cat) => {
             const count = cat === 'All' ? photos.length : photos.filter(p => p.category === cat).length
+            const Icon = categoryIcons[cat]
+            const active = activeCategory === cat
             return (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm transition-all duration-200 ${
-                  activeCategory === cat
-                    ? 'bg-ocean-500 text-white shadow-lg shadow-ocean-200'
+                className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm transition-all duration-300 ${
+                  active
+                    ? 'bg-gradient-to-r from-ocean-500 to-ocean-600 text-white shadow-lg shadow-ocean-300/40 -translate-y-0.5'
                     : 'bg-gray-100 text-gray-600 hover:bg-ocean-50 hover:text-ocean-600'
                 }`}
               >
-                <span>{categoryEmoji[cat]}</span>
+                <Icon className={`w-3.5 h-3.5 ${active ? 'text-sand-300' : 'text-ocean-400'}`} />
                 {cat}
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeCategory === cat ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${active ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'}`}>
                   {count}
                 </span>
               </button>
@@ -191,10 +204,13 @@ export default function GalleryClient() {
       <section className="py-12 bg-gray-50 min-h-[60vh]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
-            {filtered.map((photo, index) => (
+            {filtered.map((photo, index) => {
+              const Icon = categoryIcons[photo.category]
+              return (
               <div
                 key={photo.src}
-                className="break-inside-avoid group relative overflow-hidden rounded-2xl cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 bg-gray-200"
+                className="break-inside-avoid group relative overflow-hidden rounded-2xl cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gray-200 animate-fadeIn"
+                style={{ animationDelay: `${(index % 9) * 60}ms` }}
                 onClick={() => openLightbox(index)}
               >
                 <div className={`relative w-full ${
@@ -212,25 +228,27 @@ export default function GalleryClient() {
                 </div>
 
                 {/* Hover overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <div className="flex items-end justify-between">
-                      <span className="inline-flex items-center gap-1 text-white/80 text-xs font-medium bg-black/30 px-2 py-1 rounded-full backdrop-blur-sm">
-                        {categoryEmoji[photo.category]} {photo.category}
+                      <span className="inline-flex items-center gap-1.5 text-white/90 text-xs font-semibold bg-black/30 px-2.5 py-1.5 rounded-full backdrop-blur-sm">
+                        <Icon className="w-3.5 h-3.5 text-sand-300" />
+                        {photo.category}
                       </span>
-                      <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                      <div className="w-9 h-9 bg-white/15 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-white/25 transition-colors">
                         <ZoomIn className="w-4 h-4 text-white" />
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
 
           {filtered.length === 0 && (
             <div className="text-center py-20 text-gray-400">
-              <div className="text-5xl mb-4">📷</div>
+              <ImageOff className="w-12 h-12 mx-auto mb-4 text-gray-300" />
               <p className="text-lg">No photos in this category yet.</p>
             </div>
           )}
@@ -284,7 +302,10 @@ export default function GalleryClient() {
             {/* Caption */}
             <div className="text-center mt-3">
               <span className="inline-flex items-center gap-1.5 text-white/60 text-sm bg-white/10 px-3 py-1.5 rounded-full">
-                {categoryEmoji[filtered[lightboxIndex].category]}
+                {(() => {
+                  const Icon = categoryIcons[filtered[lightboxIndex].category]
+                  return <Icon className="w-3.5 h-3.5" />
+                })()}
                 {filtered[lightboxIndex].category}
               </span>
             </div>

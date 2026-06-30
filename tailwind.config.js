@@ -54,6 +54,7 @@ module.exports = {
         'wave': 'wave 8s ease-in-out infinite',
         'float': 'float 6s ease-in-out infinite',
         'shimmer': 'shimmer 2s linear infinite',
+        'fadeIn': 'fadeIn 0.5s ease-out both',
       },
       keyframes: {
         wave: {
@@ -67,6 +68,10 @@ module.exports = {
         shimmer: {
           '0%': { backgroundPosition: '-200% center' },
           '100%': { backgroundPosition: '200% center' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(12px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
     },

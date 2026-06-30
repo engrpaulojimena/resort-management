@@ -19,7 +19,7 @@ import {
 const faqs = [
   {
     q: 'What are your check-in and check-out times?',
-    a: 'Check-in is at 2:00 PM and check-out is at 12:00 PM (noon). Early check-in and late check-out may be arranged subject to availability.',
+    a: 'Check-in is at 2:00 PM and check-out is at 11:00 AM. Early check-in and late check-out may be arranged subject to availability, charged at 10% of the room rate per hour.',
   },
   {
     q: 'Do you accept walk-in guests?',

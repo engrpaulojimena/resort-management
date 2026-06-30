@@ -291,6 +291,10 @@ export default function BookClient() {
               </button>
               <p className="text-xs text-gray-400 -mt-3 text-center">
                 This sends a request only — we&apos;ll confirm availability and final pricing by email or phone.
+                By booking, you agree to our{' '}
+                <a href="/policies" target="_blank" rel="noopener noreferrer" className="text-ocean-500 hover:underline font-medium">
+                  Policies &amp; Booking Terms
+                </a>.
               </p>
             </div>
 
