@@ -1,10 +1,10 @@
 import { Resend } from 'resend'
+import type { Reservation, Payment } from '@/types'
 
-if (!process.env.RESEND_API_KEY) {
-  throw new Error('RESEND_API_KEY is not set. Check your .env.local file.')
-}
-
-export const resend = new Resend(process.env.RESEND_API_KEY)
+// Make RESEND optional so build doesn't fail without the key
+export const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'reservations@kekamiyabeachresort.com'
 
@@ -28,6 +28,7 @@ export async function sendBookingConfirmation({
   totalAmount: number
   bookingId: number
 }) {
+  if (!resend) return { error: 'Email service not configured' }
   return resend.emails.send({
     from: FROM_EMAIL,
     to,
@@ -38,11 +39,9 @@ export async function sendBookingConfirmation({
           <h1 style="color: white; margin: 0; font-size: 24px;">🌊 Kekamiya Beach Resort</h1>
           <p style="color: #bae6fd; margin: 8px 0 0;">Botolan, Zambales</p>
         </div>
-
         <div style="background: white; padding: 28px; border-radius: 12px; margin-bottom: 16px; border: 1px solid #e0f2fe;">
           <h2 style="color: #0c4a6e; margin: 0 0 8px;">Booking Confirmed! 🎉</h2>
           <p style="color: #475569; margin: 0 0 24px;">Hi ${guestName}, your paradise awaits!</p>
-
           <table style="width: 100%; border-collapse: collapse;">
             <tr><td style="padding: 10px 0; color: #64748b; border-bottom: 1px solid #f1f5f9;">Booking ID</td><td style="padding: 10px 0; font-weight: bold; text-align: right; color: #0c4a6e;">#${bookingId}</td></tr>
             <tr><td style="padding: 10px 0; color: #64748b; border-bottom: 1px solid #f1f5f9;">Room</td><td style="padding: 10px 0; font-weight: bold; text-align: right; color: #0c4a6e;">${roomType}</td></tr>
@@ -52,12 +51,10 @@ export async function sendBookingConfirmation({
             <tr><td style="padding: 10px 0; color: #64748b;">Total Amount</td><td style="padding: 10px 0; font-weight: bold; text-align: right; font-size: 20px; color: #0284c7;">₱${totalAmount.toLocaleString()}</td></tr>
           </table>
         </div>
-
         <div style="background: #ecfdf5; padding: 20px; border-radius: 12px; border: 1px solid #d1fae5; margin-bottom: 16px;">
           <h3 style="color: #065f46; margin: 0 0 8px;">📍 Getting Here</h3>
           <p style="color: #047857; margin: 0; font-size: 14px;">Botolan, Zambales, Philippines<br>~3-4 hours from Manila via NLEX/SCTEX</p>
         </div>
-
         <p style="color: #94a3b8; font-size: 12px; text-align: center;">Questions? Contact us at ${FROM_EMAIL}</p>
       </div>
     `,
@@ -78,6 +75,7 @@ export async function sendContactNotification({
   subject?: string
   message: string
 }) {
+  if (!resend) return { error: 'Email service not configured' }
   return resend.emails.send({
     from: FROM_EMAIL,
     to: FROM_EMAIL,
@@ -96,7 +94,7 @@ export async function sendContactNotification({
   })
 }
 
-// Generic sendEmail function used by send-email route
+// Generic sendEmail function
 export async function sendEmail({
   to,
   subject,
@@ -108,6 +106,7 @@ export async function sendEmail({
   html: string
   attachments?: { filename: string; content: Buffer; contentType: string }[]
 }): Promise<{ success: boolean; id?: string; error?: string }> {
+  if (!resend) return { success: false, error: 'Email service not configured (RESEND_API_KEY missing)' }
   try {
     const result = await resend.emails.send({
       from: FROM_EMAIL,
@@ -126,8 +125,6 @@ export async function sendEmail({
 }
 
 // Email templates
-import type { Reservation, Payment } from '@/types'
-
 export function reservationConfirmationEmail(reservation: Reservation): { subject: string; html: string } {
   return {
     subject: `🌊 Booking Confirmed! #${reservation.id} — Kekamiya Beach Resort`,
@@ -136,7 +133,7 @@ export function reservationConfirmationEmail(reservation: Reservation): { subjec
       <p>Hi ${reservation.guestName}, your booking #${reservation.id} is confirmed.</p>
       <p><strong>Check-in:</strong> ${reservation.checkIn}</p>
       <p><strong>Check-out:</strong> ${reservation.checkOut}</p>
-      <p><strong>Room:</strong> ${reservation.room?.type ?? reservation.roomId ?? "N/A"}</p>
+      <p><strong>Room:</strong> ${reservation.room?.type ?? reservation.roomId ?? 'N/A'}</p>
       <p>Thank you for choosing Kekamiya Beach Resort!</p>
     </div>`,
   }
@@ -148,7 +145,7 @@ export function paymentReceivedEmail(payment: Payment): { subject: string; html:
     html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
       <h2 style="color:#0c4a6e;">Payment Received</h2>
       <p>We received your payment of <strong>₱${Number(payment.amount).toLocaleString()}</strong>.</p>
-      <p>It is currently being verified. We'll notify you once confirmed.</p>
+      <p>It is currently being verified. We will notify you once confirmed.</p>
     </div>`,
   }
 }
@@ -181,7 +178,7 @@ export function checkInReminderEmail(reservation: Reservation): { subject: strin
     html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
       <h2 style="color:#0c4a6e;">Your Stay Starts Today! 🏖️</h2>
       <p>Hi ${reservation.guestName}, your check-in is today.</p>
-      <p>We can't wait to welcome you to Kekamiya Beach Resort!</p>
+      <p>We cannot wait to welcome you to Kekamiya Beach Resort!</p>
     </div>`,
   }
 }
