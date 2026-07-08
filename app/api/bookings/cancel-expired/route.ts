@@ -5,7 +5,7 @@
  * payment within 30 minutes of creation.
  *
  * Call via Vercel Cron — add to vercel.json:
- *   { "crons": [{ "path": "/api/bookings/cancel-expired", "schedule": "*/5 * * * *" }] }
+ *   { "crons": [{ "path": "/api/bookings/cancel-expired", "schedule": "0 0 * * *" }] }
  *
  * Set CRON_SECRET in Vercel env vars. Pass as Authorization: Bearer <secret>.
  */
