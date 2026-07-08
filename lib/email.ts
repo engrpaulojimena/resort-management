@@ -198,3 +198,14 @@ export function checkOutReceiptEmail(reservation: Reservation, payments: Payment
     </div>`,
   }
 }
+
+export function testEmail(name: string): { subject: string; html: string } {
+  return {
+    subject: `✉️ Test Email — Kekamiya Beach Resort`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+      <h2 style="color:#0c4a6e;">Test Email ✉️</h2>
+      <p>Hi ${name}, this is a test email from Kekamiya Beach Resort.</p>
+      <p>If you received this, your email configuration is working correctly! ✅</p>
+    </div>`,
+  }
+}
