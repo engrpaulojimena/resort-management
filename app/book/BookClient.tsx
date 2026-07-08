@@ -283,7 +283,7 @@ export default function BookClient() {
                       type="text"
                       name="name"
                       required
-                      autoComplete="name"
+                      autoComplete="off"
                       value={form.name}
                       onChange={handleChange}
                       placeholder="Juan Dela Cruz"
@@ -296,7 +296,7 @@ export default function BookClient() {
                       type="email"
                       name="email"
                       required
-                      autoComplete="email"
+                      autoComplete="off"
                       value={form.email}
                       onChange={handleChange}
                       placeholder="juan@email.com"
@@ -308,7 +308,7 @@ export default function BookClient() {
                     <input
                       type="tel"
                       name="phone"
-                      autoComplete="tel"
+                      autoComplete="off"
                       value={form.phone}
                       onChange={handleChange}
                       placeholder="09XX XXX XXXX"
