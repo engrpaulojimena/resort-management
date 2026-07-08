@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import BookingConfirmationClient from './BookingConfirmationClient'
 import Navbar from '@/components/Navbar'
@@ -12,7 +13,9 @@ export default function BookingConfirmationPage() {
   return (
     <main className="min-h-screen">
       <Navbar />
-      <BookingConfirmationClient />
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+        <BookingConfirmationClient />
+      </Suspense>
       <Footer />
     </main>
   )

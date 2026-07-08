@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import PayDepositClient from './PayDepositClient'
 import Navbar from '@/components/Navbar'
@@ -12,7 +13,9 @@ export default function PayDepositPage() {
   return (
     <main className="min-h-screen">
       <Navbar />
-      <PayDepositClient />
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+        <PayDepositClient />
+      </Suspense>
       <Footer />
     </main>
   )
