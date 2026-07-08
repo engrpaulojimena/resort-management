@@ -11,7 +11,7 @@ import {
 const rooms = [
   {
     id: 'ground-floor',
-    images: ['/images/19290.jpg', '/images/19291.jpg', '/images/19293.jpg'],
+    images: ['/images/19291.jpg', '/images/19292.jpg', '/images/19293.jpg'],
     name: 'A-Frame Villa · Ground Floor',
     shortName: 'Ground Floor',
     tag: 'Most Popular',

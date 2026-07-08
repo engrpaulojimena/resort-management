@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
   CalendarDays,
@@ -62,6 +63,9 @@ export default function BookClient() {
     notes: '',
   })
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [confirmationCode, setConfirmationCode] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
+  const router = useRouter()
 
   const selectedRoom = rooms.find((r) => r.id === form.roomId) ?? rooms[0]
 
@@ -86,9 +90,43 @@ export default function BookClient() {
     e.preventDefault()
     if (!form.checkIn || !form.checkOut || !form.name || !form.email) return
     setStatus('sending')
-    // Simulate a booking request — replace with your API route / lib/email.ts call
-    await new Promise((r) => setTimeout(r, 1500))
-    setStatus('sent')
+    setErrorMsg('')
+
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+
+      if (!res.ok || !data.success) {
+        setErrorMsg(data.error || 'Something went wrong. Please try again.')
+        setStatus('error')
+        return
+      }
+
+      setConfirmationCode(data.confirmationCode)
+      setStatus('sent')
+
+      // Redirect to booking confirmation page with all details
+      const params = new URLSearchParams({
+        code: data.confirmationCode,
+        id: String(data.reservationId),
+        name: form.name,
+        email: form.email,
+        phone: form.phone || '',
+        checkIn: form.checkIn,
+        checkOut: form.checkOut,
+        guests: String(form.guests),
+        roomId: form.roomId,
+        notes: form.notes || '',
+      })
+      router.push(`/booking-confirmation?${params.toString()}`)
+    } catch {
+      setErrorMsg('Network error. Please check your connection and try again.')
+      setStatus('error')
+    }
   }
 
   if (status === 'sent') {
@@ -99,14 +137,20 @@ export default function BookClient() {
             <CheckCircle2 className="w-9 h-9 text-palm-500" />
           </div>
           <h1 className="font-display text-2xl font-bold text-ocean-900 mb-2">Request Sent!</h1>
-          <p className="text-gray-600 mb-6">
-            Thank you, {form.name.split(' ')[0] || 'guest'}. We&apos;ve received your booking request for{' '}
+          <p className="text-gray-600 mb-4">
+            Thank you, {form.name.split(' ')[0] || 'guest'}! We&apos;ve received your booking request for{' '}
             <span className="font-semibold text-ocean-700">{selectedRoom.name}</span>
             {nights > 0 && (
               <> ({nights} night{nights > 1 ? 's' : ''})</>
-            )}
-            . Our team will confirm availability and reach out within 24 hours.
+            )}. Our team will confirm within 24 hours.
           </p>
+          {confirmationCode && (
+            <div className="bg-ocean-50 border border-ocean-200 rounded-xl px-6 py-4 mb-6">
+              <p className="text-xs font-bold text-ocean-500 uppercase tracking-widest mb-1">Confirmation Code</p>
+              <p className="font-display text-3xl font-bold text-ocean-900 tracking-widest">{confirmationCode}</p>
+              <p className="text-xs text-gray-500 mt-1">A copy was sent to {form.email}</p>
+            </div>
+          )}
           <a href="/" className="btn-primary justify-center w-full">
             Back to Home
           </a>
@@ -239,6 +283,7 @@ export default function BookClient() {
                       type="text"
                       name="name"
                       required
+                      autoComplete="name"
                       value={form.name}
                       onChange={handleChange}
                       placeholder="Juan Dela Cruz"
@@ -251,6 +296,7 @@ export default function BookClient() {
                       type="email"
                       name="email"
                       required
+                      autoComplete="email"
                       value={form.email}
                       onChange={handleChange}
                       placeholder="juan@email.com"
@@ -262,6 +308,7 @@ export default function BookClient() {
                     <input
                       type="tel"
                       name="phone"
+                      autoComplete="tel"
                       value={form.phone}
                       onChange={handleChange}
                       placeholder="09XX XXX XXXX"
@@ -282,6 +329,12 @@ export default function BookClient() {
                 </div>
               </div>
 
+              {status === 'error' && errorMsg && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+                  {errorMsg}
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={status === 'sending'}
@@ -296,6 +349,14 @@ export default function BookClient() {
                   Policies &amp; Booking Terms
                 </a>.
               </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-2.5 -mt-2">
+                <span className="text-amber-500 text-base leading-none mt-0.5">⏳</span>
+                <p className="text-xs text-amber-700">
+                  <strong>Important:</strong> After submitting, you&apos;ll have <strong>30 minutes</strong> to pay your deposit. Bookings with no payment submitted within this window will be automatically cancelled. You can always{' '}
+                  <a href="/my-booking" className="underline font-medium text-amber-800">find your booking</a>{' '}
+                  using your confirmation code if you need to return to the payment page.
+                </p>
+              </div>
             </div>
 
             {/* Right — Summary */}

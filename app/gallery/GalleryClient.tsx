@@ -14,6 +14,37 @@ interface GalleryPhoto {
 }
 
 const photos: GalleryPhoto[] = [
+  // POOL category
+  {
+    src: '/images/pool.jpg',
+    alt: 'Kekamiya Resort swimming pool — clear blue water surrounded by tropical landscaping',
+    category: 'Pool',
+    span: 'tall',
+  },
+  {
+    src: '/images/19288.jpg',
+    alt: "Kekamiya's main infinity pool with clear turquoise water under a deep blue sky",
+    category: 'Pool',
+    span: 'wide',
+  },
+  {
+    src: '/images/resort-pavilion-pool.jpg',
+    alt: 'Beachfront pavilion and pool with a view of the shore',
+    category: 'Pool',
+    span: 'normal',
+  },
+  {
+    src: '/images/resort-villas-daytime.jpg',
+    alt: 'A-frame villas lined beside the pool on a sunny day',
+    category: 'Pool',
+    span: 'normal',
+  },
+  {
+    src: '/images/resort-villas-golden-hour.jpg',
+    alt: 'Guests enjoying the infinity pool at golden hour beside the villas',
+    category: 'Pool',
+    span: 'normal',
+  },
   // SUNSET category
   {
     src: '/images/19285.jpg',
@@ -28,42 +59,17 @@ const photos: GalleryPhoto[] = [
     span: 'normal',
   },
   {
-    src: '/images/19287.jpg',
-    alt: 'Sun setting perfectly behind a poolside parasol with sunbathers relaxing',
-    category: 'Sunset',
-    span: 'normal',
-  },
-  {
     src: '/images/19289.jpg',
     alt: 'Swimmers enjoying the pool as the golden hour sky reflects on the water',
     category: 'Sunset',
     span: 'tall',
   },
-  // POOL category
-  {
-    src: '/images/19288.jpg',
-    alt: "Kekamiya's main infinity pool with clear turquoise water under a deep blue sky",
-    category: 'Pool',
-    span: 'wide',
-  },
-  {
-    src: '/images/resort-villas-daytime.jpg',
-    alt: 'A-frame villas lined beside the pool on a sunny day',
-    category: 'Pool',
-    span: 'tall',
-  },
-  {
-    src: '/images/resort-villas-golden-hour.jpg',
-    alt: 'Guests enjoying the infinity pool at golden hour beside the villas',
-    category: 'Pool',
-    span: 'normal',
-  },
   // EXTERIOR category
   {
-    src: '/images/resort-pavilion-pool.jpg',
-    alt: 'Beachfront pavilion and pool with a view of the shore',
+    src: '/images/19300.jpg',
+    alt: 'Resort cottages and outdoor area by the water',
     category: 'Exterior',
-    span: 'tall',
+    span: 'wide',
   },
   {
     src: '/images/resort-villas-night.jpg',
@@ -71,13 +77,19 @@ const photos: GalleryPhoto[] = [
     category: 'Exterior',
     span: 'normal',
   },
-  // ROOMS category
   {
-    src: '/images/19290.jpg',
-    alt: 'A-frame cabin interior — lower level with mini-bar, kettle, and steel staircase',
-    category: 'Rooms',
+    src: '/images/19302.jpg',
+    alt: 'Resort event venue and open-air facilities',
+    category: 'Exterior',
     span: 'normal',
   },
+  {
+    src: '/images/19303.jpg',
+    alt: 'Kekamiya Resort grounds and facilities from the outside',
+    category: 'Exterior',
+    span: 'normal',
+  },
+  // ROOMS category
   {
     src: '/images/19291.jpg',
     alt: 'Living area of A-frame villa with sofa, wooden staircase, and natural light',
@@ -168,7 +180,7 @@ export default function GalleryClient() {
           <p className="text-ocean-200 text-lg max-w-xl mx-auto">
             Glimpses of paradise — from golden sunsets to our iconic A-frame villas in Botolan, Zambales.
           </p>
-          <p className="text-ocean-400 text-sm mt-2">{photos.length} photos</p>
+          <p className="text-ocean-400 text-sm mt-2">{photos.length} photos &amp; counting</p>
         </div>
       </div>
 
