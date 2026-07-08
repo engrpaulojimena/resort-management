@@ -1,15 +1,26 @@
+/**
+ * GET /api/bookings/cancel-expired
+ *
+ * Auto-cancels reservations that are still "pending" AND have no submitted
+ * payment within 30 minutes of creation.
+ *
+ * Call via Vercel Cron — add to vercel.json:
+ *   { "crons": [{ "path": "/api/bookings/cancel-expired", "schedule": "0 0 * * *" }] }
+ *
+ * Set CRON_SECRET in Vercel env vars. Pass as Authorization: Bearer <secret>.
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import nodemailer from 'nodemailer'
 
-// ─── DB ───────────────────────────────────────────────────────────────────────
 const sql = neon(process.env.DATABASE_URL!)
 
-// ─── Email (Nodemailer/Gmail — same setup as resort-admin) ───────────────────
-const GMAIL_USER = process.env.GMAIL_USER || ''
-const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || ''
-const RESORT_NAME = process.env.RESORT_NAME || 'Kekamiya Beach Resort'
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || GMAIL_USER
+const CRON_SECRET              = process.env.CRON_SECRET || ''
+const GMAIL_USER               = process.env.GMAIL_USER || ''
+const GMAIL_APP_PASSWORD       = process.env.GMAIL_APP_PASSWORD || ''
+const RESORT_NAME              = process.env.RESORT_NAME || 'Kekamiya Beach Resort'
+const PAYMENT_DEADLINE_MINUTES = 30
 
 function getTransporter() {
   if (!GMAIL_USER || !GMAIL_APP_PASSWORD) return null
@@ -19,328 +30,170 @@ function getTransporter() {
   })
 }
 
-async function sendEmail(to: string, subject: string, html: string) {
+async function sendCancellationEmail(opts: {
+  guestEmail: string
+  guestName: string
+  confirmationCode: string
+  roomName: string
+  checkIn: string
+  checkOut: string
+}) {
   const transporter = getTransporter()
   if (!transporter) {
-    console.log(`[bookings:dry-run] would send "${subject}" to ${to}`)
+    console.log(`[cancel-expired] dry-run: would email ${opts.guestEmail}`)
     return
   }
-  try {
-    await transporter.sendMail({
-      from: `"${RESORT_NAME}" <${GMAIL_USER}>`,
-      to,
-      subject,
-      html,
-    })
-  } catch (err) {
-    console.error('[bookings] sendEmail failed:', err)
-  }
-}
 
-// ─── Maps public site room IDs → admin room_number values ────────────────────
-// Update these to match the actual room_number values in your rooms table.
-const ROOM_NUMBER_MAP: Record<string, string> = {
-  ground: '101',   // A-Frame Villa · Ground Floor
-  loft: '102',     // A-Frame Villa · Upper Loft
-  poolside: '201', // Poolside Villa Package
-}
-
-const ROOM_DISPLAY_NAMES: Record<string, string> = {
-  ground: 'A-Frame Villa · Ground Floor',
-  loft: 'A-Frame Villa · Upper Loft',
-  poolside: 'Poolside Villa Package',
-}
-
-const ROOM_PRICES: Record<string, number> = {
-  ground: 3500,
-  loft: 3000,
-  poolside: 6500,
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function generateConfirmationCode(): string {
-  // Same format as resort-admin: RSV-XXXXXX
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let code = 'RSV-'
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return code
-}
-
-function nightsBetween(checkIn: string, checkOut: string): number {
-  return Math.round(
-    (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)
-  )
-}
-
-function formatDatePH(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-PH', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-}
-
-// ─── Email templates ──────────────────────────────────────────────────────────
-function guestConfirmationHtml(opts: {
-  guestName: string
-  roomName: string
-  checkIn: string
-  checkOut: string
-  nights: number
-  guests: number
-  totalAmount: number
-  confirmationCode: string
-  specialRequests?: string
-}) {
-  return `<!DOCTYPE html>
-<html>
-<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#f0f9ff;">
-<div style="max-width:600px;margin:0 auto;padding:24px;">
-  <div style="background:linear-gradient(135deg,#0c4a6e,#0284c7);padding:32px;border-radius:16px 16px 0 0;text-align:center;">
-    <h1 style="color:#fff;margin:0;font-size:24px;">${RESORT_NAME}</h1>
-    <p style="color:#bae6fd;margin:6px 0 0;font-size:13px;">Botolan, Zambales · Philippines</p>
-  </div>
-  <div style="background:#fff;padding:28px;border-left:1px solid #e0f2fe;border-right:1px solid #e0f2fe;">
-    <h2 style="color:#0c4a6e;margin:0 0 4px;">Booking Request Received! 🎉</h2>
-    <p style="color:#64748b;margin:0 0 24px;">Hi ${opts.guestName.split(' ')[0]}, we got your request and will confirm within 24 hours.</p>
-    <div style="background:#f0f9ff;border-radius:12px;padding:20px;margin-bottom:24px;border:1px solid #bae6fd;text-align:center;">
-      <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#0284c7;letter-spacing:1px;text-transform:uppercase;">Confirmation Code</p>
-      <p style="margin:0;font-size:30px;font-weight:bold;color:#0c4a6e;letter-spacing:4px;">${opts.confirmationCode}</p>
-      <p style="margin:4px 0 0;font-size:12px;color:#64748b;">Keep this code — we'll reference it when we reach out.</p>
-    </div>
-    <table style="width:100%;border-collapse:collapse;font-size:14px;">
-      <tr><td style="padding:10px 0;color:#64748b;border-bottom:1px solid #f1f5f9;">Villa / Room</td>
-          <td style="padding:10px 0;font-weight:600;text-align:right;color:#0c4a6e;">${opts.roomName}</td></tr>
-      <tr><td style="padding:10px 0;color:#64748b;border-bottom:1px solid #f1f5f9;">Check-in</td>
-          <td style="padding:10px 0;font-weight:600;text-align:right;color:#0c4a6e;">${opts.checkIn}</td></tr>
-      <tr><td style="padding:10px 0;color:#64748b;border-bottom:1px solid #f1f5f9;">Check-out</td>
-          <td style="padding:10px 0;font-weight:600;text-align:right;color:#0c4a6e;">${opts.checkOut}</td></tr>
-      <tr><td style="padding:10px 0;color:#64748b;border-bottom:1px solid #f1f5f9;">Duration</td>
-          <td style="padding:10px 0;font-weight:600;text-align:right;color:#0c4a6e;">${opts.nights} night${opts.nights > 1 ? 's' : ''}</td></tr>
-      <tr><td style="padding:10px 0;color:#64748b;border-bottom:1px solid #f1f5f9;">Guests</td>
-          <td style="padding:10px 0;font-weight:600;text-align:right;color:#0c4a6e;">${opts.guests}</td></tr>
-      ${opts.specialRequests ? `<tr><td style="padding:10px 0;color:#64748b;border-bottom:1px solid #f1f5f9;">Special Requests</td>
-          <td style="padding:10px 0;font-weight:600;text-align:right;color:#0c4a6e;">${opts.specialRequests}</td></tr>` : ''}
-      <tr><td style="padding:14px 0 4px;color:#0c4a6e;font-weight:700;">Estimated Total</td>
-          <td style="padding:14px 0 4px;font-weight:700;text-align:right;font-size:20px;color:#0284c7;">₱${opts.totalAmount.toLocaleString()}</td></tr>
-    </table>
-    <p style="font-size:12px;color:#94a3b8;margin:4px 0 20px;">*Final pricing confirmed upon booking approval.</p>
-    <div style="background:#ecfdf5;border-radius:12px;padding:14px;border:1px solid #d1fae5;">
-      <p style="margin:0;font-size:13px;color:#047857;">📍 <strong>Botolan, Zambales</strong> · ~3–4 hours from Manila via NLEX/SCTEX<br>
-      🕑 Check-in: 2:00 PM &nbsp;·&nbsp; Check-out: 12:00 PM</p>
-    </div>
-  </div>
-  <div style="background:#0c4a6e;padding:18px;border-radius:0 0 16px 16px;text-align:center;">
-    <p style="color:#bae6fd;margin:0;font-size:13px;">Questions? Email us at <a href="mailto:${GMAIL_USER}" style="color:#7dd3fc;">${GMAIL_USER}</a></p>
-  </div>
-</div>
-</body>
-</html>`
-}
-
-function adminNotificationHtml(opts: {
-  guestName: string
-  guestEmail: string
-  guestPhone: string
-  roomName: string
-  checkIn: string
-  checkOut: string
-  nights: number
-  guests: number
-  totalAmount: number
-  confirmationCode: string
-  specialRequests?: string
-}) {
-  const dashboardUrl = process.env.ADMIN_DASHBOARD_URL || '#'
-  return `<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html>
 <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#f8fafc;">
 <div style="max-width:600px;margin:0 auto;padding:24px;">
-  <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);padding:24px 32px;border-radius:16px 16px 0 0;">
-    <h2 style="color:#fff;margin:0;font-size:20px;">🔔 New Booking from Website</h2>
-    <p style="color:#ddd6fe;margin:4px 0 0;font-size:13px;">${RESORT_NAME} · source: website</p>
+  <div style="background:linear-gradient(135deg,#0c4a6e,#0284c7);padding:32px;border-radius:16px 16px 0 0;text-align:center;">
+    <h1 style="color:#fff;margin:0;font-size:22px;">${RESORT_NAME}</h1>
+    <p style="color:#bae6fd;margin:6px 0 0;font-size:13px;">Botolan, Zambales · Philippines</p>
   </div>
-  <div style="background:#fff;padding:28px;border:1px solid #e2e8f0;border-top:none;">
-    <div style="margin-bottom:20px;">
-      <p style="margin:0;font-size:20px;font-weight:700;color:#1e293b;">${opts.guestName}</p>
-      <p style="margin:2px 0 0;font-size:14px;color:#64748b;">${opts.guestEmail}${opts.guestPhone ? ' · ' + opts.guestPhone : ''}</p>
+  <div style="background:#fff;padding:28px;border-left:1px solid #e0f2fe;border-right:1px solid #e0f2fe;">
+    <h2 style="color:#dc2626;margin:0 0 12px;">Booking Cancelled — No Deposit Received</h2>
+    <p style="color:#64748b;margin:0 0 20px;">
+      Hi ${opts.guestName.split(' ')[0]}, your booking request <strong style="color:#0c4a6e;">${opts.confirmationCode}</strong>
+      was automatically cancelled because no deposit was submitted within ${PAYMENT_DEADLINE_MINUTES} minutes.
+    </p>
+    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px;margin-bottom:20px;font-size:14px;">
+      <div style="margin-bottom:8px;"><strong style="color:#0c4a6e;">Villa:</strong> ${opts.roomName}</div>
+      <div style="margin-bottom:8px;"><strong style="color:#0c4a6e;">Check-in:</strong> ${opts.checkIn}</div>
+      <div><strong style="color:#0c4a6e;">Check-out:</strong> ${opts.checkOut}</div>
     </div>
-    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px;text-align:center;margin-bottom:20px;">
-      <p style="margin:0;font-size:11px;color:#16a34a;font-weight:700;letter-spacing:1px;">CONFIRMATION CODE</p>
-      <p style="margin:4px 0 0;font-size:22px;font-weight:700;color:#15803d;letter-spacing:3px;">${opts.confirmationCode}</p>
-    </div>
-    <table style="width:100%;border-collapse:collapse;font-size:14px;">
-      <tr style="background:#f8fafc;"><td style="padding:10px 12px;color:#64748b;font-weight:600;">Villa</td>
-          <td style="padding:10px 12px;color:#1e293b;font-weight:600;">${opts.roomName}</td></tr>
-      <tr><td style="padding:10px 12px;color:#64748b;font-weight:600;">Check-in</td>
-          <td style="padding:10px 12px;color:#1e293b;">${opts.checkIn}</td></tr>
-      <tr style="background:#f8fafc;"><td style="padding:10px 12px;color:#64748b;font-weight:600;">Check-out</td>
-          <td style="padding:10px 12px;color:#1e293b;">${opts.checkOut}</td></tr>
-      <tr><td style="padding:10px 12px;color:#64748b;font-weight:600;">Duration</td>
-          <td style="padding:10px 12px;color:#1e293b;">${opts.nights} night${opts.nights > 1 ? 's' : ''} · ${opts.guests} guest${opts.guests > 1 ? 's' : ''}</td></tr>
-      ${opts.specialRequests ? `<tr style="background:#f8fafc;"><td style="padding:10px 12px;color:#64748b;font-weight:600;vertical-align:top;">Requests</td>
-          <td style="padding:10px 12px;color:#1e293b;">${opts.specialRequests}</td></tr>` : ''}
-      <tr style="background:#fefce8;"><td style="padding:12px;color:#854d0e;font-weight:700;font-size:15px;">Estimated Total</td>
-          <td style="padding:12px;color:#854d0e;font-weight:700;font-size:18px;">₱${opts.totalAmount.toLocaleString()}</td></tr>
-    </table>
-    <div style="margin-top:20px;text-align:center;">
-      <a href="${dashboardUrl}/admin/reservations" style="display:inline-block;background:#7c3aed;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">View in Dashboard →</a>
+    <p style="color:#64748b;font-size:14px;">
+      No worries — these dates may still be available. Feel free to book again!
+    </p>
+    <div style="text-align:center;margin-top:20px;">
+      <a href="${process.env.NEXT_PUBLIC_SITE_URL || '#'}/book"
+         style="display:inline-block;background:#0284c7;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+        Book Again →
+      </a>
     </div>
   </div>
-  <div style="background:#1e293b;padding:16px;border-radius:0 0 16px 16px;text-align:center;">
-    <p style="color:#94a3b8;margin:0;font-size:12px;">${RESORT_NAME} Admin Notification</p>
+  <div style="background:#0c4a6e;padding:18px;border-radius:0 0 16px 16px;text-align:center;">
+    <p style="color:#bae6fd;margin:0;font-size:13px;">
+      Questions? Email <a href="mailto:${GMAIL_USER}" style="color:#7dd3fc;">${GMAIL_USER}</a>
+    </p>
   </div>
 </div>
 </body>
 </html>`
+
+  try {
+    await transporter.sendMail({
+      from:    `"${RESORT_NAME}" <${GMAIL_USER}>`,
+      to:      opts.guestEmail,
+      subject: `Booking Cancelled — ${opts.confirmationCode} | ${RESORT_NAME}`,
+      html,
+    })
+  } catch (err) {
+    console.error('[cancel-expired] email failed:', err)
+  }
 }
 
-// ─── Route handler ─────────────────────────────────────────────────────────────
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
+  // Auth check
+  const isVercelCron = req.headers.get('x-vercel-cron') === '1'
+  const authHeader   = req.headers.get('authorization')
+  const bearerOk     = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`
+
+  if (!isVercelCron && !bearerOk) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
-    const body = await req.json()
-    const { checkIn, checkOut, guests, roomId, name, email, phone, notes } = body
-
-    // ── Validate ──
-    if (!checkIn || !checkOut || !name || !email || !roomId) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-    }
-
-    const nights = nightsBetween(checkIn, checkOut)
-    if (nights <= 0) {
-      return NextResponse.json({ error: 'Invalid dates' }, { status: 400 })
-    }
-
-    const roomName = ROOM_DISPLAY_NAMES[roomId]
-    const pricePerNight = ROOM_PRICES[roomId]
-    if (!roomName || !pricePerNight) {
-      return NextResponse.json({ error: 'Invalid room selection' }, { status: 400 })
-    }
-
-    const totalAmount = nights * pricePerNight
-    const confirmationCode = generateConfirmationCode()
-
-    // ── Split name ──
-    const nameParts = name.trim().split(/\s+/)
-    const firstName = nameParts[0]
-    const lastName = nameParts.slice(1).join(' ') || '-'
-
-    // ── Upsert guest ──
-    let guestId: number
-    const existingGuest = await sql`
-      SELECT id FROM guests WHERE email = ${email} LIMIT 1
+    const expired = await sql`
+      SELECT
+        r.id,
+        r.confirmation_code,
+        r.check_in,
+        r.check_out,
+        r.created_at,
+        g.first_name,
+        g.last_name,
+        g.email,
+        ro.room_number,
+        ro.type AS room_type
+      FROM reservations r
+      JOIN guests g  ON g.id  = r.guest_id
+      JOIN rooms  ro ON ro.id = r.room_id
+      WHERE r.status = 'pending'
+        AND r.created_at < NOW() - (${PAYMENT_DEADLINE_MINUTES} || ' minutes')::interval
+        AND NOT EXISTS (
+          SELECT 1 FROM payments p
+          WHERE p.reservation_id = r.id
+            AND p.status IN ('pending', 'verified')
+        )
     `
-    if (existingGuest.length > 0) {
-      guestId = existingGuest[0].id
-      await sql`
-        UPDATE guests SET updated_at = NOW() WHERE id = ${guestId}
-      `
-    } else {
-      const newGuest = await sql`
-        INSERT INTO guests (first_name, last_name, email, phone, created_at, updated_at)
-        VALUES (${firstName}, ${lastName}, ${email}, ${phone || null}, NOW(), NOW())
-        RETURNING id
-      `
-      guestId = newGuest[0].id
+
+    if (expired.length === 0) {
+      return NextResponse.json({ success: true, cancelled: 0, message: 'No expired bookings.' })
     }
 
-    // ── Resolve room_id from rooms table ──
-    const roomNumber = ROOM_NUMBER_MAP[roomId]
-    let dbRoomId: number | null = null
-    if (roomNumber) {
-      const roomRow = await sql`
-        SELECT id FROM rooms WHERE room_number = ${roomNumber} LIMIT 1
-      `
-      if (roomRow.length > 0) dbRoomId = roomRow[0].id
-    }
+    const formatDate = (d: string) =>
+      new Date(d).toLocaleDateString('en-PH', {
+        weekday: 'short', year: 'numeric', month: 'long', day: 'numeric',
+      })
 
-    // ── Create reservation ──
-    const newReservation = await sql`
-      INSERT INTO reservations (
-        confirmation_code, guest_id, room_id, status,
-        check_in, check_out, adults, children,
-        guest_name, total_amount, special_requests, source,
-        created_at, updated_at
-      ) VALUES (
-        ${confirmationCode}, ${guestId}, ${dbRoomId}, 'pending',
-        ${checkIn}, ${checkOut}, ${Math.max(1, guests)}, 0,
-        ${name.trim()}, ${totalAmount.toFixed(2)}, ${notes || null}, 'website',
-        NOW(), NOW()
-      )
-      RETURNING id
-    `
-    const reservationId = newReservation[0].id
+    let cancelledCount = 0
+    const cancelledCodes: string[] = []
 
-    // ── Mark room as reserved ──
-    if (dbRoomId) {
-      await sql`
-        UPDATE rooms SET status = 'reserved', updated_at = NOW() WHERE id = ${dbRoomId}
-      `.catch(() => {})
-    }
+    for (const row of expired) {
+      try {
+        const roomName = `${row.room_type ?? 'Room'} · ${row.room_number ?? ''}`
 
-    // ── Create notification for all admin/super_admin users ──
-    try {
-      const adminUsers = await sql`
-        SELECT id FROM users WHERE role IN ('admin', 'super_admin') AND is_active = true
-      `
-      for (const adminUser of adminUsers) {
+        await sql`
+          UPDATE reservations
+          SET
+            status     = 'cancelled',
+            updated_at = NOW(),
+            special_requests = CASE
+              WHEN special_requests IS NULL OR special_requests = '' THEN ${'Auto-cancelled: no deposit within ' + PAYMENT_DEADLINE_MINUTES + ' min'}
+              ELSE special_requests || ${ ' | Auto-cancelled: no deposit within ' + PAYMENT_DEADLINE_MINUTES + ' min'}
+            END
+          WHERE id = ${row.id} AND status = 'pending'
+        `
+
+        await sql`
+          INSERT INTO activity_logs (type, entity, entity_id, description, created_at)
+          VALUES (
+            'cancel', 'reservation', ${row.id},
+            ${'Auto-cancelled: no deposit submitted within ' + PAYMENT_DEADLINE_MINUTES + ' minutes (' + row.confirmation_code + ')'},
+            NOW()
+          )
+        `.catch(() => {})
+
         await sql`
           INSERT INTO notifications (user_id, type, title, message, entity, entity_id, is_read, email_sent, created_at)
-          VALUES (
-            ${adminUser.id}, 'new_reservation',
-            'New Booking from Website',
-            ${`${name} booked ${roomName} — ${nights} night${nights > 1 ? 's' : ''} (${checkIn} → ${checkOut}). Code: ${confirmationCode}`},
-            'reservation', ${reservationId}, false, false, NOW()
-          )
-        `
+          SELECT id, 'auto_cancel',
+            'Booking Auto-Cancelled',
+            ${'Booking ' + row.confirmation_code + ' for ' + row.first_name + ' ' + row.last_name + ' was auto-cancelled — no deposit within ' + PAYMENT_DEADLINE_MINUTES + ' min.'},
+            'reservation', ${row.id}, false, false, NOW()
+          FROM users WHERE role IN ('admin', 'super_admin') AND is_active = true
+        `.catch(() => {})
+
+        await sendCancellationEmail({
+          guestEmail:       row.email,
+          guestName:        `${row.first_name} ${row.last_name}`,
+          confirmationCode: row.confirmation_code,
+          roomName,
+          checkIn:          formatDate(row.check_in),
+          checkOut:         formatDate(row.check_out),
+        })
+
+        cancelledCount++
+        cancelledCodes.push(row.confirmation_code)
+      } catch (innerErr) {
+        console.error(`[cancel-expired] failed for ${row.confirmation_code}:`, innerErr)
       }
-    } catch (err) {
-      console.error('[bookings] notification insert failed (non-fatal):', err)
     }
 
-    // ── Activity log ──
-    await sql`
-      INSERT INTO activity_logs (type, entity, entity_id, description, created_at)
-      VALUES (
-        'create', 'reservation', ${reservationId},
-        ${`Website booking ${confirmationCode} by ${name} — ${roomName}, ${nights} night${nights > 1 ? 's' : ''}.`},
-        NOW()
-      )
-    `.catch(() => {})
-
-    // ── Send emails (fire-and-forget) ──
-    const checkInFmt = formatDatePH(checkIn)
-    const checkOutFmt = formatDatePH(checkOut)
-
-    Promise.allSettled([
-      sendEmail(
-        email,
-        `Booking Request · ${confirmationCode} — ${RESORT_NAME}`,
-        guestConfirmationHtml({
-          guestName: name, roomName,
-          checkIn: checkInFmt, checkOut: checkOutFmt,
-          nights, guests, totalAmount, confirmationCode,
-          specialRequests: notes || undefined,
-        })
-      ),
-      sendEmail(
-        ADMIN_EMAIL,
-        `🔔 New Booking: ${name} · ${roomName} · ${checkInFmt}`,
-        adminNotificationHtml({
-          guestName: name, guestEmail: email, guestPhone: phone || '',
-          roomName, checkIn: checkInFmt, checkOut: checkOutFmt,
-          nights, guests, totalAmount, confirmationCode,
-          specialRequests: notes || undefined,
-        })
-      ),
-    ])
-
-    return NextResponse.json({ success: true, confirmationCode, reservationId })
+    return NextResponse.json({ success: true, cancelled: cancelledCount, codes: cancelledCodes })
   } catch (err) {
-    console.error('[bookings] error:', err)
-    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
+    console.error('[cancel-expired] error:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
