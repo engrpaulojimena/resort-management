@@ -138,7 +138,7 @@ export default function BookClient() {
           </div>
           <h1 className="font-display text-2xl font-bold text-ocean-900 mb-2">Request Sent!</h1>
           <p className="text-gray-600 mb-4">
-            Thank you, {form.name.split(' ')[0] || 'guest'}! We&apos;ve received your booking request for{' '}
+            Thank you, {form.name || 'guest'}! We&apos;ve received your booking request for{' '}
             <span className="font-semibold text-ocean-700">{selectedRoom.name}</span>
             {nights > 0 && (
               <> ({nights} night{nights > 1 ? 's' : ''})</>
