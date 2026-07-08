@@ -95,3 +95,106 @@ export async function sendContactNotification({
     `,
   })
 }
+
+// Generic sendEmail function used by send-email route
+export async function sendEmail({
+  to,
+  subject,
+  html,
+  attachments,
+}: {
+  to: string
+  subject: string
+  html: string
+  attachments?: { filename: string; content: Buffer; contentType: string }[]
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject,
+      html,
+      attachments: attachments?.map(a => ({
+        filename: a.filename,
+        content: a.content,
+      })),
+    })
+    return { success: true, id: result.data?.id ?? 'sent' }
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? 'Unknown error' }
+  }
+}
+
+// Email templates
+import type { Reservation, Payment } from '@/types'
+
+export function reservationConfirmationEmail(reservation: Reservation): { subject: string; html: string } {
+  return {
+    subject: `🌊 Booking Confirmed! #${reservation.id} — Kekamiya Beach Resort`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+      <h2 style="color:#0c4a6e;">Booking Confirmed! 🎉</h2>
+      <p>Hi ${reservation.guestName}, your booking #${reservation.id} is confirmed.</p>
+      <p><strong>Check-in:</strong> ${reservation.checkIn}</p>
+      <p><strong>Check-out:</strong> ${reservation.checkOut}</p>
+      <p><strong>Room:</strong> ${reservation.roomType ?? reservation.roomId}</p>
+      <p>Thank you for choosing Kekamiya Beach Resort!</p>
+    </div>`,
+  }
+}
+
+export function paymentReceivedEmail(payment: Payment): { subject: string; html: string } {
+  return {
+    subject: `💳 Payment Received — Kekamiya Beach Resort`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+      <h2 style="color:#0c4a6e;">Payment Received</h2>
+      <p>We received your payment of <strong>₱${Number(payment.amount).toLocaleString()}</strong>.</p>
+      <p>It is currently being verified. We'll notify you once confirmed.</p>
+    </div>`,
+  }
+}
+
+export function paymentVerifiedEmail(payment: Payment): { subject: string; html: string } {
+  return {
+    subject: `✅ Payment Verified — Kekamiya Beach Resort`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+      <h2 style="color:#065f46;">Payment Verified! ✅</h2>
+      <p>Your payment of <strong>₱${Number(payment.amount).toLocaleString()}</strong> has been verified.</p>
+      <p>We look forward to welcoming you!</p>
+    </div>`,
+  }
+}
+
+export function paymentRejectedEmail(payment: Payment): { subject: string; html: string } {
+  return {
+    subject: `❌ Payment Issue — Kekamiya Beach Resort`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+      <h2 style="color:#991b1b;">Payment Not Verified</h2>
+      <p>Unfortunately, we could not verify your payment of <strong>₱${Number(payment.amount).toLocaleString()}</strong>.</p>
+      <p>Please contact us for assistance.</p>
+    </div>`,
+  }
+}
+
+export function checkInReminderEmail(reservation: Reservation): { subject: string; html: string } {
+  return {
+    subject: `🏖️ Check-in Reminder — Kekamiya Beach Resort`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+      <h2 style="color:#0c4a6e;">Your Stay Starts Today! 🏖️</h2>
+      <p>Hi ${reservation.guestName}, your check-in is today.</p>
+      <p>We can't wait to welcome you to Kekamiya Beach Resort!</p>
+    </div>`,
+  }
+}
+
+export function checkOutReceiptEmail(reservation: Reservation, payments: Payment[]): { subject: string; html: string } {
+  const total = payments.filter(p => p.status === 'verified').reduce((s, p) => s + Number(p.amount), 0)
+  return {
+    subject: `🧾 Check-out Receipt — Kekamiya Beach Resort`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+      <h2 style="color:#0c4a6e;">Thank You for Staying! 🌊</h2>
+      <p>Hi ${reservation.guestName}, we hope you enjoyed your stay.</p>
+      <p><strong>Total Paid:</strong> ₱${total.toLocaleString()}</p>
+      <p>See you again at Kekamiya Beach Resort!</p>
+    </div>`,
+  }
+}
