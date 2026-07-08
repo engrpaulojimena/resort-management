@@ -136,7 +136,7 @@ export function reservationConfirmationEmail(reservation: Reservation): { subjec
       <p>Hi ${reservation.guestName}, your booking #${reservation.id} is confirmed.</p>
       <p><strong>Check-in:</strong> ${reservation.checkIn}</p>
       <p><strong>Check-out:</strong> ${reservation.checkOut}</p>
-      <p><strong>Room:</strong> ${reservation.roomType ?? reservation.roomId}</p>
+      <p><strong>Room:</strong> ${reservation.room?.type ?? reservation.roomId ?? "N/A"}</p>
       <p>Thank you for choosing Kekamiya Beach Resort!</p>
     </div>`,
   }
