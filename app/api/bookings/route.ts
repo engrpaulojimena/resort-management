@@ -202,7 +202,7 @@ function adminNotificationHtml(opts: {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { checkIn, checkOut, guests, roomId, name, email, phone, notes } = body
+    const { checkIn, checkOut, guests, roomId, name, firstName: fName, lastName: lName, email, phone, notes } = body
 
     // ── Validate ──
     if (!checkIn || !checkOut || !name || !email || !roomId) {
@@ -223,10 +223,10 @@ export async function POST(req: NextRequest) {
     const totalAmount = nights * pricePerNight
     const confirmationCode = generateConfirmationCode()
 
-    // ── Split name ──
-    const nameParts = name.trim().split(/\s+/)
-    const firstName = nameParts[0]
-    const lastName = nameParts.slice(1).join(' ') || '-'
+    // ── Name — prefer explicit firstName/lastName from form, fallback to splitting name ──
+    const fullName = name?.trim() || `${fName ?? ''} ${lName ?? ''}`.trim()
+    const firstName = fName?.trim() || fullName.split(/\s+/)[0]
+    const lastName = lName?.trim() || fullName.split(/\s+/).slice(1).join(' ') || '-'
 
     // ── Upsert guest ──
     let guestId: number
@@ -235,9 +235,13 @@ export async function POST(req: NextRequest) {
     `
     if (existingGuest.length > 0) {
       guestId = existingGuest[0].id
-      await sql`
-        UPDATE guests SET updated_at = NOW() WHERE id = ${guestId}
-      `
+      // Only update phone if a new one is provided — never overwrite the existing guest's name
+      // (a different person could reuse an email, or the admin may have corrected it manually)
+      if (phone) {
+        await sql`
+          UPDATE guests SET phone = ${phone}, updated_at = NOW() WHERE id = ${guestId}
+        `
+      }
     } else {
       const newGuest = await sql`
         INSERT INTO guests (first_name, last_name, email, phone, created_at, updated_at)
@@ -262,12 +266,12 @@ export async function POST(req: NextRequest) {
       INSERT INTO reservations (
         confirmation_code, guest_id, room_id, status,
         check_in, check_out, adults, children,
-        total_amount, special_requests, source,
+        guest_name, total_amount, special_requests, source,
         created_at, updated_at
       ) VALUES (
         ${confirmationCode}, ${guestId}, ${dbRoomId}, 'pending',
         ${checkIn}, ${checkOut}, ${Math.max(1, guests)}, 0,
-        ${totalAmount.toFixed(2)}, ${notes || null}, 'website',
+        ${fullName}, ${totalAmount.toFixed(2)}, ${notes || null}, 'website',
         NOW(), NOW()
       )
       RETURNING id
@@ -292,7 +296,7 @@ export async function POST(req: NextRequest) {
           VALUES (
             ${adminUser.id}, 'new_reservation',
             'New Booking from Website',
-            ${`${name} booked ${roomName} — ${nights} night${nights > 1 ? 's' : ''} (${checkIn} → ${checkOut}). Code: ${confirmationCode}`},
+            ${`${fullName} booked ${roomName} — ${nights} night${nights > 1 ? 's' : ''} (${checkIn} → ${checkOut}). Code: ${confirmationCode}`},
             'reservation', ${reservationId}, false, false, NOW()
           )
         `
@@ -306,7 +310,7 @@ export async function POST(req: NextRequest) {
       INSERT INTO activity_logs (type, entity, entity_id, description, created_at)
       VALUES (
         'create', 'reservation', ${reservationId},
-        ${`Website booking ${confirmationCode} by ${name} — ${roomName}, ${nights} night${nights > 1 ? 's' : ''}.`},
+        ${`Website booking ${confirmationCode} by ${fullName} — ${roomName}, ${nights} night${nights > 1 ? 's' : ''}.`},
         NOW()
       )
     `.catch(() => {})
@@ -320,7 +324,7 @@ export async function POST(req: NextRequest) {
         email,
         `Booking Request · ${confirmationCode} — ${RESORT_NAME}`,
         guestConfirmationHtml({
-          guestName: name, roomName,
+          guestName: fullName, roomName,
           checkIn: checkInFmt, checkOut: checkOutFmt,
           nights, guests, totalAmount, confirmationCode,
           specialRequests: notes || undefined,
@@ -330,7 +334,7 @@ export async function POST(req: NextRequest) {
         ADMIN_EMAIL,
         `🔔 New Booking: ${name} · ${roomName} · ${checkInFmt}`,
         adminNotificationHtml({
-          guestName: name, guestEmail: email, guestPhone: phone || '',
+          guestName: fullName, guestEmail: email, guestPhone: phone || '',
           roomName, checkIn: checkInFmt, checkOut: checkOutFmt,
           nights, guests, totalAmount, confirmationCode,
           specialRequests: notes || undefined,

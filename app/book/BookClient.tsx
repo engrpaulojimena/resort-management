@@ -57,7 +57,8 @@ export default function BookClient() {
     checkOut: '',
     guests: 2,
     roomId: 'ground',
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     notes: '',
@@ -88,7 +89,7 @@ export default function BookClient() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.checkIn || !form.checkOut || !form.name || !form.email) return
+    if (!form.checkIn || !form.checkOut || !form.firstName || !form.email) return
     setStatus('sending')
     setErrorMsg('')
 
@@ -96,7 +97,10 @@ export default function BookClient() {
       const res = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          name: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
+        }),
       })
       const data = await res.json()
 
@@ -113,7 +117,7 @@ export default function BookClient() {
       const params = new URLSearchParams({
         code: data.confirmationCode,
         id: String(data.reservationId),
-        name: form.name,
+        name: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
         email: form.email,
         phone: form.phone || '',
         checkIn: form.checkIn,
@@ -138,7 +142,7 @@ export default function BookClient() {
           </div>
           <h1 className="font-display text-2xl font-bold text-ocean-900 mb-2">Request Sent!</h1>
           <p className="text-gray-600 mb-4">
-            Thank you, {form.name || 'guest'}! We&apos;ve received your booking request for{' '}
+            Thank you, {form.firstName || 'guest'}! We&apos;ve received your booking request for{' '}
             <span className="font-semibold text-ocean-700">{selectedRoom.name}</span>
             {nights > 0 && (
               <> ({nights} night{nights > 1 ? 's' : ''})</>
@@ -277,16 +281,29 @@ export default function BookClient() {
               <div>
                 <p className="section-label mb-4">Your Details</p>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <label className="flex flex-col gap-1.5 sm:col-span-2">
-                    <span className="text-sm font-semibold text-gray-700">Full Name</span>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-sm font-semibold text-gray-700">First Name</span>
                     <input
                       type="text"
-                      name="name"
+                      name="firstName"
                       required
                       autoComplete="off"
-                      value={form.name}
+                      value={form.firstName}
                       onChange={handleChange}
-                      placeholder="Juan Dela Cruz"
+                      placeholder="Juan"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-ocean-400 focus:ring-2 focus:ring-ocean-100 outline-none transition-all text-sm text-gray-800"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-sm font-semibold text-gray-700">Last Name</span>
+                    <input
+                      type="text"
+                      name="lastName"
+                      required
+                      autoComplete="off"
+                      value={form.lastName}
+                      onChange={handleChange}
+                      placeholder="Dela Cruz"
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-ocean-400 focus:ring-2 focus:ring-ocean-100 outline-none transition-all text-sm text-gray-800"
                     />
                   </label>

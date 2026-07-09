@@ -36,6 +36,8 @@ export default function PayDepositClient() {
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle')
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [customAmount, setCustomAmount] = useState('')
+  const [useCustomAmount, setUseCustomAmount] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -97,6 +99,8 @@ export default function PayDepositClient() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  const finalAmount = useCustomAmount && customAmount ? parseInt(customAmount) : depositAmount
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!referenceNumber.trim()) {
@@ -105,6 +109,10 @@ export default function PayDepositClient() {
     }
     if (!proofFile) {
       setErrorMsg('Please upload your proof of payment.')
+      return
+    }
+    if (useCustomAmount && customAmount && parseInt(customAmount) < depositAmount) {
+      setErrorMsg('Amount must be at least the required deposit of ₱' + depositAmount.toLocaleString() + '.')
       return
     }
 
@@ -128,7 +136,7 @@ export default function PayDepositClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reservationId: parseInt(reservationId),
-          amount: depositAmount,
+          amount: finalAmount,
           method,
           paymentType: 'deposit',
           referenceNumber: referenceNumber.trim(),
@@ -188,7 +196,7 @@ export default function PayDepositClient() {
               <p className="text-xs font-bold text-ocean-500 uppercase tracking-widest mb-2">Booking Reference</p>
               <p className="font-display text-2xl font-bold text-ocean-900 tracking-widest mb-1">{confirmationCode}</p>
               <p className="text-sm text-gray-500">
-                Deposit: <span className="font-semibold text-palm-600">₱{depositAmount.toLocaleString()}</span> via {method === 'gcash' ? 'GCash' : 'Bank Transfer'}
+                Deposit: <span className="font-semibold text-palm-600">₱{finalAmount.toLocaleString()}</span> via {method === 'gcash' ? 'GCash' : 'Bank Transfer'}
               </p>
             </div>
             <p className="text-sm text-gray-400 mb-6">
@@ -226,15 +234,48 @@ export default function PayDepositClient() {
           </button>
 
           {/* Amount summary */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Amount Due (30% Deposit)</p>
-              <p className="font-display text-3xl font-bold text-sand-600">₱{depositAmount.toLocaleString()}</p>
-              <p className="text-xs text-gray-400 mt-0.5">Balance of ₱{(totalAmount - depositAmount).toLocaleString()} due at check-in</p>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Required Deposit (30%)</p>
+                <p className="font-display text-3xl font-bold text-sand-600">₱{depositAmount.toLocaleString()}</p>
+                <p className="text-xs text-gray-400 mt-0.5">Balance of ₱{(totalAmount - depositAmount).toLocaleString()} due at check-in</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Total Stay</p>
+                <p className="font-display text-xl font-bold text-ocean-800">₱{totalAmount.toLocaleString()}</p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Total Stay</p>
-              <p className="font-display text-xl font-bold text-ocean-800">₱{totalAmount.toLocaleString()}</p>
+            {/* Custom amount option */}
+            <div className="border-t border-gray-100 pt-4">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={useCustomAmount}
+                  onChange={e => { setUseCustomAmount(e.target.checked); setCustomAmount(''); }}
+                  className="w-4 h-4 rounded accent-ocean-500"
+                />
+                <span className="text-sm font-medium text-gray-600">I want to pay a different amount</span>
+              </label>
+              {useCustomAmount && (
+                <div className="mt-3">
+                  <label className="text-xs font-semibold text-gray-500 block mb-1.5">Enter amount (₱)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={customAmount}
+                    onChange={e => setCustomAmount(e.target.value)}
+                    placeholder={String(depositAmount)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-ocean-400 focus:ring-2 focus:ring-ocean-100 outline-none transition-all text-sm text-gray-800 font-bold"
+                  />
+                  {customAmount && parseInt(customAmount) > depositAmount && (
+                    <p className="text-xs text-palm-600 mt-1.5 font-medium">✓ ₱{(parseInt(customAmount) - depositAmount).toLocaleString()} over the required deposit</p>
+                  )}
+                  {customAmount && parseInt(customAmount) < depositAmount && (
+                    <p className="text-xs text-amber-600 mt-1.5 font-medium">⚠ ₱{(depositAmount - parseInt(customAmount)).toLocaleString()} below the required deposit — subject to staff approval</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -457,7 +498,7 @@ export default function PayDepositClient() {
 
             <button
               type="submit"
-              disabled={submitStatus === 'submitting'}
+              disabled={submitStatus === 'submitting' || (useCustomAmount && !!customAmount && parseInt(customAmount) < depositAmount)}
               className="btn-primary justify-center w-full text-base py-4 disabled:opacity-60 disabled:hover:translate-y-0"
             >
               {submitStatus === 'submitting' ? (
