@@ -129,7 +129,7 @@ export default function BookingConfirmationClient() {
 
   if (loading || !booking) {
     return (
-      <section className="min-h-screen flex items-center justify-center pt-24">
+      <section className="min-h-screen flex items-center justify-center pt-32">
         <Loader2 className="w-8 h-8 animate-spin text-ocean-400" />
       </section>
     )
@@ -158,7 +158,7 @@ export default function BookingConfirmationClient() {
   }
 
   return (
-    <section className="min-h-screen bg-gray-50 pt-24 pb-16 px-4">
+    <section className="min-h-screen bg-gray-50 pt-32 pb-16 px-4">
       <div className="max-w-2xl mx-auto">
 
         {/* Success header */}

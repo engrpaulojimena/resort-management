@@ -159,7 +159,7 @@ export default function GalleryClient() {
   return (
     <>
       {/* Hero banner */}
-      <div className="relative pt-20 pb-16 bg-gradient-to-br from-ocean-700 to-ocean-900 overflow-hidden">
+      <div className="relative pt-24 pb-16 bg-gradient-to-br from-ocean-700 to-ocean-900 overflow-hidden">
         {/* Background from best photo */}
         <div className="absolute inset-0 opacity-30">
           <Image

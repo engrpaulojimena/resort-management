@@ -142,7 +142,7 @@ export default function PoliciesClient() {
   return (
     <>
       {/* Hero band */}
-      <div className="relative pt-20 pb-16 bg-gradient-to-br from-ocean-700 to-ocean-900 overflow-hidden">
+      <div className="relative pt-24 pb-16 bg-gradient-to-br from-ocean-700 to-ocean-900 overflow-hidden">
         <div className="absolute inset-0 opacity-25">
           <Image src="/images/19286.jpg" alt="Policies background" fill className="object-cover" sizes="100vw" />
         </div>

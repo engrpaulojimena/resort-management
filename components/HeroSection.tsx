@@ -89,11 +89,11 @@ export default function HeroSection() {
         <div
           className={`flex flex-col sm:flex-row gap-4 mb-16 transition-all duration-1000 delay-500 ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
         >
-          <Link href="/book" className="btn-primary text-base px-8 py-4 rounded-full shadow-2xl shadow-ocean-900/30">
-            <Waves className="w-5 h-5" />
+          <Link href="/book" className="btn-primary text-sm sm:text-base px-6 sm:px-8 py-3.5 sm:py-4 rounded-full shadow-2xl shadow-ocean-900/30 justify-center">
+            <Waves className="w-4 h-4 sm:w-5 sm:h-5" />
             Book Your Stay
           </Link>
-          <Link href="/gallery" className="btn-secondary text-base px-8 py-4">
+          <Link href="/gallery" className="btn-secondary text-sm sm:text-base px-6 sm:px-8 py-3.5 sm:py-4 justify-center">
             View Gallery
           </Link>
         </div>

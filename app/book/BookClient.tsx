@@ -62,7 +62,7 @@ function getRoomLabel(room: LiveRoom): string {
 const perks = [
   { icon: Sparkles,    label: 'Infinity pool & beach access' },
   { icon: ShieldCheck, label: 'Free cancellation up to 48 hrs before check-in' },
-  { icon: Clock,       label: 'Check-in 2:00 PM · Check-out 12:00 PM' },
+  { icon: Clock,       label: 'Check-in 2:00 PM · Check-out 11:00 AM' },
 ]
 
 function todayStr() {
@@ -292,7 +292,7 @@ export default function BookClient() {
   return (
     <>
       {/* Hero band */}
-      <div className="relative pt-20 pb-16 bg-gradient-to-br from-ocean-700 to-ocean-900 overflow-hidden">
+      <div className="relative pt-24 pb-16 bg-gradient-to-br from-ocean-700 to-ocean-900 overflow-hidden">
         <div className="absolute inset-0 opacity-25">
           <Image src="/images/19289.jpg" alt="Booking background" fill className="object-cover" sizes="100vw" />
         </div>
@@ -470,7 +470,8 @@ export default function BookClient() {
                           name="roomId"
                           value={form.roomId}
                           onChange={handleChange}
-                          className="w-full pl-9 pr-9 py-3 rounded-xl border border-gray-200 focus:border-ocean-400 focus:ring-2 focus:ring-ocean-100 outline-none transition-all text-sm text-gray-800 appearance-none bg-white"
+                          disabled={availabilityLoading}
+                          className="w-full pl-9 pr-9 py-3 rounded-xl border border-gray-200 focus:border-ocean-400 focus:ring-2 focus:ring-ocean-100 outline-none transition-all text-sm text-gray-800 appearance-none bg-white disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50"
                         >
                           {allRooms.map((r) => {
                             const isMaint    = r.status === 'maintenance'
