@@ -93,7 +93,7 @@ function guestConfirmationHtml(opts: {
     <p style="font-size:12px;color:#94a3b8;margin:4px 0 20px;">*Final pricing confirmed upon booking approval.</p>
     <div style="background:#ecfdf5;border-radius:12px;padding:14px;border:1px solid #d1fae5;">
       <p style="margin:0;font-size:13px;color:#047857;">📍 <strong>Botolan, Zambales</strong> · ~3–4 hours from Manila via NLEX/SCTEX<br>
-      🕑 Check-in: 2:00 PM &nbsp;·&nbsp; Check-out: 12:00 PM</p>
+      🕑 Check-in: 2:00 PM &nbsp;·&nbsp; Check-out: 11:00 AM</p>
     </div>
   </div>
   <div style="background:#0c4a6e;padding:18px;border-radius:0 0 16px 16px;text-align:center;">
@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
     const conflictRows = await sql`
       SELECT id FROM reservations
       WHERE room_id = ${dbRoomId}
-        AND status NOT IN ('cancelled', 'checked_out')
+        AND status IN ('confirmed', 'checked_in')
         AND check_in  < ${checkOut}::timestamptz
         AND check_out > ${checkIn}::timestamptz
       LIMIT 1
@@ -256,10 +256,8 @@ export async function POST(req: NextRequest) {
     `
     const reservationId = newReservation[0].id
 
-    // ── Mark room as reserved ─────────────────────────────────────────────────
-    await sql`
-      UPDATE rooms SET status = 'reserved', updated_at = NOW() WHERE id = ${dbRoomId}
-    `.catch(() => {})
+    // Room status is NOT changed here — rooms are only marked 'reserved'
+    // by the admin after confirming the guest's deposit payment.
 
     // ── Notify all admin/super_admin users ────────────────────────────────────
     try {

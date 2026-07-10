@@ -63,11 +63,16 @@ export async function POST(req: NextRequest) {
       })
       .returning();
 
-    // A room now has an active booking against it — reflect that on the room record
-    // (unless the reservation was created as already cancelled, which shouldn't
-    // normally happen from this endpoint, but guard for safety).
-    if (newReservation.roomId && status !== 'cancelled') {
-      await db.update(rooms).set({ status: 'reserved', updatedAt: new Date() }).where(eq(rooms.id, newReservation.roomId));
+    // Only update room status if the reservation is already confirmed or checked_in.
+    // Pending reservations do NOT block the room — admin must confirm DP first.
+    if (newReservation.roomId) {
+      const initialRoomStatus =
+        status === 'checked_in'  ? 'occupied' :
+        status === 'confirmed'   ? 'reserved' :
+        null; // pending/cancelled → no change
+      if (initialRoomStatus) {
+        await db.update(rooms).set({ status: initialRoomStatus, updatedAt: new Date() }).where(eq(rooms.id, newReservation.roomId));
+      }
     }
 
     // Fetch joined data for the response
@@ -125,16 +130,19 @@ export async function PATCH(req: NextRequest) {
 
     // Keep the room's status in sync with the reservation lifecycle.
     if (existing.roomId) {
-      const roomStatusByReservationStatus: Record<string, 'available' | 'occupied' | 'reserved'> = {
-        pending: 'reserved',
-        confirmed: 'reserved',
+      const roomStatusByReservationStatus: Record<string, 'available' | 'occupied' | 'reserved' | null> = {
+        pending:    null,        // pending = no room block, wait for DP confirmation
+        confirmed:  'reserved',  // admin confirmed DP → room is now reserved
         checked_in: 'occupied',
         checked_out: 'available',
-        cancelled: 'available',
+        cancelled:  'available',
       };
-      await db.update(rooms)
-        .set({ status: roomStatusByReservationStatus[status], updatedAt: new Date() })
-        .where(eq(rooms.id, existing.roomId));
+      const newRoomStatus = roomStatusByReservationStatus[status];
+      if (newRoomStatus !== null) {
+        await db.update(rooms)
+          .set({ status: newRoomStatus, updatedAt: new Date() })
+          .where(eq(rooms.id, existing.roomId));
+      }
     }
 
     const [joined] = await db
