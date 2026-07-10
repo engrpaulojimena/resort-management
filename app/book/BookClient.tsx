@@ -320,6 +320,53 @@ export default function BookClient() {
             </div>
           )}
 
+          {/* ── Mobile-only Room Preview ─────────────────────────────── */}
+          {selectedRoom && (
+            <div className="lg:hidden bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-2">
+              <div className="relative h-36">
+                <Image
+                  src={getRoomImage(selectedRoom)}
+                  alt={getRoomLabel(selectedRoom)}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 0px"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute bottom-3 left-4 right-4">
+                  <p className="text-white font-display font-bold text-base leading-tight drop-shadow">
+                    {getRoomLabel(selectedRoom)}
+                  </p>
+                  <p className="text-white/80 text-xs flex items-center gap-1">
+                    <Users className="w-3 h-3" /> Up to {selectedRoom.capacity} Guests
+                  </p>
+                </div>
+              </div>
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedRoom.amenities?.slice(0, 3).map((a) => (
+                    <span key={a} className="text-xs bg-ocean-50 text-ocean-600 px-2.5 py-1 rounded-full font-medium">
+                      {a}
+                    </span>
+                  ))}
+                </div>
+                <div className="text-right shrink-0 ml-3">
+                  <p className="text-xs text-gray-400">per night</p>
+                  <p className="font-bold text-ocean-900 text-sm">
+                    &#8369;{parseFloat(selectedRoom.pricePerNight).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              {estimatedTotal > 0 && (
+                <div className="px-4 pb-3 flex items-center justify-between border-t border-gray-100 pt-3">
+                  <span className="text-sm text-gray-500">{nights} night{nights !== 1 ? 's' : ''} &middot; Est. total</span>
+                  <span className="font-display font-bold text-sand-600 text-lg">
+                    &#8369;{estimatedTotal.toLocaleString()}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="grid lg:grid-cols-5 gap-10">
 
             {/* ── Left — Form ─────────────────────────────────────────────── */}
@@ -566,7 +613,7 @@ export default function BookClient() {
             </div>
 
             {/* ── Right — Summary ──────────────────────────────────────────── */}
-            <div className="lg:col-span-2">
+            <div className="hidden lg:block lg:col-span-2">
               <div className="lg:sticky lg:top-28 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 {selectedRoom ? (
                   <>
