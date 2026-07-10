@@ -5,11 +5,11 @@ import nodemailer from 'nodemailer'
 // ─── DB ───────────────────────────────────────────────────────────────────────
 const sql = neon(process.env.DATABASE_URL!)
 
-// ─── Email (Nodemailer/Gmail — same setup as resort-admin) ───────────────────
-const GMAIL_USER = process.env.GMAIL_USER || ''
+// ─── Email (Nodemailer/Gmail) ─────────────────────────────────────────────────
+const GMAIL_USER        = process.env.GMAIL_USER || ''
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || ''
-const RESORT_NAME = process.env.RESORT_NAME || 'Kekamiya Beach Resort'
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || GMAIL_USER
+const RESORT_NAME       = process.env.RESORT_NAME || 'Kekamiya Beach Resort'
+const ADMIN_EMAIL       = process.env.ADMIN_EMAIL || GMAIL_USER
 
 function getTransporter() {
   if (!GMAIL_USER || !GMAIL_APP_PASSWORD) return null
@@ -26,45 +26,17 @@ async function sendEmail(to: string, subject: string, html: string) {
     return
   }
   try {
-    await transporter.sendMail({
-      from: `"${RESORT_NAME}" <${GMAIL_USER}>`,
-      to,
-      subject,
-      html,
-    })
+    await transporter.sendMail({ from: `"${RESORT_NAME}" <${GMAIL_USER}>`, to, subject, html })
   } catch (err) {
     console.error('[bookings] sendEmail failed:', err)
   }
 }
 
-// ─── Maps public site room IDs → admin room_number values ────────────────────
-// Update these to match the actual room_number values in your rooms table.
-const ROOM_NUMBER_MAP: Record<string, string> = {
-  ground: '101',   // A-Frame Villa · Ground Floor
-  loft: '102',     // A-Frame Villa · Upper Loft
-  poolside: '201', // Poolside Villa Package
-}
-
-const ROOM_DISPLAY_NAMES: Record<string, string> = {
-  ground: 'A-Frame Villa · Ground Floor',
-  loft: 'A-Frame Villa · Upper Loft',
-  poolside: 'Poolside Villa Package',
-}
-
-const ROOM_PRICES: Record<string, number> = {
-  ground: 3500,
-  loft: 3000,
-  poolside: 6500,
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function generateConfirmationCode(): string {
-  // Same format as resort-admin: RSV-XXXXXX
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   let code = 'RSV-'
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
+  for (let i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length))
   return code
 }
 
@@ -76,23 +48,14 @@ function nightsBetween(checkIn: string, checkOut: string): number {
 
 function formatDatePH(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-PH', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+    weekday: 'short', year: 'numeric', month: 'long', day: 'numeric',
   })
 }
 
 // ─── Email templates ──────────────────────────────────────────────────────────
 function guestConfirmationHtml(opts: {
-  guestName: string
-  roomName: string
-  checkIn: string
-  checkOut: string
-  nights: number
-  guests: number
-  totalAmount: number
-  confirmationCode: string
+  guestName: string; roomName: string; checkIn: string; checkOut: string
+  nights: number; guests: number; totalAmount: number; confirmationCode: string
   specialRequests?: string
 }) {
   return `<!DOCTYPE html>
@@ -142,17 +105,9 @@ function guestConfirmationHtml(opts: {
 }
 
 function adminNotificationHtml(opts: {
-  guestName: string
-  guestEmail: string
-  guestPhone: string
-  roomName: string
-  checkIn: string
-  checkOut: string
-  nights: number
-  guests: number
-  totalAmount: number
-  confirmationCode: string
-  specialRequests?: string
+  guestName: string; guestEmail: string; guestPhone: string; roomName: string
+  checkIn: string; checkOut: string; nights: number; guests: number
+  totalAmount: number; confirmationCode: string; specialRequests?: string
 }) {
   const dashboardUrl = process.env.ADMIN_DASHBOARD_URL || '#'
   return `<!DOCTYPE html>
@@ -214,33 +169,66 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid dates' }, { status: 400 })
     }
 
-    const roomName = ROOM_DISPLAY_NAMES[roomId]
-    const pricePerNight = ROOM_PRICES[roomId]
-    if (!roomName || !pricePerNight) {
+    // ── Resolve room from DB using numeric ID ─────────────────────────────────
+    // roomId is now a numeric DB id (e.g. "3"), not the old string key ('ground').
+    const dbRoomId = parseInt(roomId)
+    if (isNaN(dbRoomId)) {
       return NextResponse.json({ error: 'Invalid room selection' }, { status: 400 })
     }
 
+    const roomRows = await sql`
+      SELECT id, room_number, type, price_per_night, description, status
+      FROM rooms
+      WHERE id = ${dbRoomId}
+      LIMIT 1
+    `
+    if (roomRows.length === 0) {
+      return NextResponse.json({ error: 'Room not found' }, { status: 400 })
+    }
+    const room = roomRows[0]
+
+    if (room.status === 'maintenance') {
+      return NextResponse.json({ error: 'This room is currently under maintenance and cannot be booked.' }, { status: 400 })
+    }
+
+    // ── Double-check availability (server-side guard) ─────────────────────────
+    const conflictRows = await sql`
+      SELECT id FROM reservations
+      WHERE room_id = ${dbRoomId}
+        AND status NOT IN ('cancelled', 'checked_out')
+        AND check_in  < ${checkOut}::timestamptz
+        AND check_out > ${checkIn}::timestamptz
+      LIMIT 1
+    `
+    if (conflictRows.length > 0) {
+      return NextResponse.json(
+        { error: 'Sorry, this room is no longer available for the selected dates. Please choose another room or different dates.' },
+        { status: 409 }
+      )
+    }
+
+    // ── Build display name & total ────────────────────────────────────────────
+    const TYPE_LABEL: Record<string, string> = {
+      standard: 'Standard Room', deluxe: 'Deluxe Room', suite: 'Suite',
+      villa: 'Villa', cottage: 'Cottage',
+    }
+    const roomName    = `${TYPE_LABEL[room.type] ?? room.type} · Room ${room.room_number}`
+    const pricePerNight = parseFloat(room.price_per_night)
     const totalAmount = nights * pricePerNight
     const confirmationCode = generateConfirmationCode()
 
-    // ── Name — prefer explicit firstName/lastName from form, fallback to splitting name ──
-    const fullName = name?.trim() || `${fName ?? ''} ${lName ?? ''}`.trim()
+    // ── Name ──────────────────────────────────────────────────────────────────
+    const fullName  = name?.trim() || `${fName ?? ''} ${lName ?? ''}`.trim()
     const firstName = fName?.trim() || fullName.split(/\s+/)[0]
-    const lastName = lName?.trim() || fullName.split(/\s+/).slice(1).join(' ') || '-'
+    const lastName  = lName?.trim() || fullName.split(/\s+/).slice(1).join(' ') || '-'
 
-    // ── Upsert guest ──
+    // ── Upsert guest ──────────────────────────────────────────────────────────
     let guestId: number
-    const existingGuest = await sql`
-      SELECT id FROM guests WHERE email = ${email} LIMIT 1
-    `
+    const existingGuest = await sql`SELECT id FROM guests WHERE email = ${email} LIMIT 1`
     if (existingGuest.length > 0) {
       guestId = existingGuest[0].id
-      // Only update phone if a new one is provided — never overwrite the existing guest's name
-      // (a different person could reuse an email, or the admin may have corrected it manually)
       if (phone) {
-        await sql`
-          UPDATE guests SET phone = ${phone}, updated_at = NOW() WHERE id = ${guestId}
-        `
+        await sql`UPDATE guests SET phone = ${phone}, updated_at = NOW() WHERE id = ${guestId}`
       }
     } else {
       const newGuest = await sql`
@@ -251,17 +239,7 @@ export async function POST(req: NextRequest) {
       guestId = newGuest[0].id
     }
 
-    // ── Resolve room_id from rooms table ──
-    const roomNumber = ROOM_NUMBER_MAP[roomId]
-    let dbRoomId: number | null = null
-    if (roomNumber) {
-      const roomRow = await sql`
-        SELECT id FROM rooms WHERE room_number = ${roomNumber} LIMIT 1
-      `
-      if (roomRow.length > 0) dbRoomId = roomRow[0].id
-    }
-
-    // ── Create reservation ──
+    // ── Create reservation ────────────────────────────────────────────────────
     const newReservation = await sql`
       INSERT INTO reservations (
         confirmation_code, guest_id, room_id, status,
@@ -278,14 +256,12 @@ export async function POST(req: NextRequest) {
     `
     const reservationId = newReservation[0].id
 
-    // ── Mark room as reserved ──
-    if (dbRoomId) {
-      await sql`
-        UPDATE rooms SET status = 'reserved', updated_at = NOW() WHERE id = ${dbRoomId}
-      `.catch(() => {})
-    }
+    // ── Mark room as reserved ─────────────────────────────────────────────────
+    await sql`
+      UPDATE rooms SET status = 'reserved', updated_at = NOW() WHERE id = ${dbRoomId}
+    `.catch(() => {})
 
-    // ── Create notification for all admin/super_admin users ──
+    // ── Notify all admin/super_admin users ────────────────────────────────────
     try {
       const adminUsers = await sql`
         SELECT id FROM users WHERE role IN ('admin', 'super_admin') AND is_active = true
@@ -305,7 +281,7 @@ export async function POST(req: NextRequest) {
       console.error('[bookings] notification insert failed (non-fatal):', err)
     }
 
-    // ── Activity log ──
+    // ── Activity log ──────────────────────────────────────────────────────────
     await sql`
       INSERT INTO activity_logs (type, entity, entity_id, description, created_at)
       VALUES (
@@ -315,8 +291,8 @@ export async function POST(req: NextRequest) {
       )
     `.catch(() => {})
 
-    // ── Send emails (fire-and-forget) ──
-    const checkInFmt = formatDatePH(checkIn)
+    // ── Send emails (fire-and-forget) ─────────────────────────────────────────
+    const checkInFmt  = formatDatePH(checkIn)
     const checkOutFmt = formatDatePH(checkOut)
 
     Promise.allSettled([
@@ -332,7 +308,7 @@ export async function POST(req: NextRequest) {
       ),
       sendEmail(
         ADMIN_EMAIL,
-        `🔔 New Booking: ${name} · ${roomName} · ${checkInFmt}`,
+        `🔔 New Booking: ${fullName} · ${roomName} · ${checkInFmt}`,
         adminNotificationHtml({
           guestName: fullName, guestEmail: email, guestPhone: phone || '',
           roomName, checkIn: checkInFmt, checkOut: checkOutFmt,

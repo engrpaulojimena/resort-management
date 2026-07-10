@@ -15,19 +15,6 @@ import {
   Loader2,
 } from 'lucide-react'
 
-// Mirror the same room data as BookClient
-const ROOM_NAMES: Record<string, string> = {
-  ground: 'A-Frame Villa · Ground Floor',
-  loft: 'A-Frame Villa · Upper Loft',
-  poolside: 'Poolside Villa Package',
-}
-
-const ROOM_PRICES: Record<string, number> = {
-  ground: 3500,
-  loft: 3000,
-  poolside: 6500,
-}
-
 const DEPOSIT_RATE = 0.3 // 30% deposit
 
 interface BookingDetails {
@@ -41,6 +28,14 @@ interface BookingDetails {
   guests: number
   roomId: string
   notes?: string
+}
+
+interface RoomDetails {
+  id: number
+  roomNumber: string
+  type: string
+  pricePerNight: number
+  description: string | null
 }
 
 function formatDatePH(dateStr: string) {
@@ -58,32 +53,43 @@ function nightsBetween(checkIn: string, checkOut: string) {
   )
 }
 
+const TYPE_LABEL: Record<string, string> = {
+  standard: 'Standard Room',
+  deluxe:   'Deluxe Room',
+  suite:    'Suite',
+  villa:    'Villa',
+  cottage:  'Cottage',
+}
+
+function getRoomLabel(room: RoomDetails) {
+  return `${TYPE_LABEL[room.type] ?? room.type} · Room ${room.roomNumber}`
+}
+
 export default function BookingConfirmationClient() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [booking, setBooking] = useState<BookingDetails | null>(null)
+  const [room, setRoom] = useState<RoomDetails | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Read booking details from URL search params (passed from BookClient)
-    const code = searchParams.get('code')
+    const code          = searchParams.get('code')
     const reservationId = searchParams.get('id')
-    const name = searchParams.get('name')
-    const email = searchParams.get('email')
-    const phone = searchParams.get('phone') || ''
-    const checkIn = searchParams.get('checkIn')
-    const checkOut = searchParams.get('checkOut')
-    const guests = searchParams.get('guests')
-    const roomId = searchParams.get('roomId')
-    const notes = searchParams.get('notes') || ''
+    const name          = searchParams.get('name')
+    const email         = searchParams.get('email')
+    const phone         = searchParams.get('phone') || ''
+    const checkIn       = searchParams.get('checkIn')
+    const checkOut      = searchParams.get('checkOut')
+    const guests        = searchParams.get('guests')
+    const roomId        = searchParams.get('roomId')
+    const notes         = searchParams.get('notes') || ''
 
     if (!code || !name || !email || !checkIn || !checkOut || !guests || !roomId || !reservationId) {
-      // If no params, redirect to booking page
       router.replace('/book')
       return
     }
 
-    setBooking({
+    const details: BookingDetails = {
       confirmationCode: code,
       reservationId: parseInt(reservationId),
       name,
@@ -94,8 +100,31 @@ export default function BookingConfirmationClient() {
       guests: parseInt(guests),
       roomId,
       notes,
-    })
-    setLoading(false)
+    }
+    setBooking(details)
+
+    // Fetch actual room details from DB so price is always accurate
+    fetch(`/api/rooms?roomId=${roomId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        // /api/rooms returns array; find matching room
+        const found = Array.isArray(data)
+          ? data.find((r: RoomDetails) => String(r.id) === roomId)
+          : null
+        if (found) {
+          setRoom({
+            id: found.id,
+            roomNumber: found.roomNumber,
+            type: found.type,
+            pricePerNight: parseFloat(found.pricePerNight),
+            description: found.description ?? null,
+          })
+        }
+      })
+      .catch(() => {
+        // Non-fatal — amounts will show as 0 but page still works
+      })
+      .finally(() => setLoading(false))
   }, [searchParams, router])
 
   if (loading || !booking) {
@@ -106,23 +135,23 @@ export default function BookingConfirmationClient() {
     )
   }
 
-  const nights = nightsBetween(booking.checkIn, booking.checkOut)
-  const roomName = ROOM_NAMES[booking.roomId] ?? booking.roomId
-  const pricePerNight = ROOM_PRICES[booking.roomId] ?? 0
-  const totalAmount = nights * pricePerNight
+  const nights        = nightsBetween(booking.checkIn, booking.checkOut)
+  const roomName      = room ? getRoomLabel(room) : `Room ${booking.roomId}`
+  const pricePerNight = room?.pricePerNight ?? 0
+  const totalAmount   = nights * pricePerNight
   const depositAmount = Math.ceil(totalAmount * DEPOSIT_RATE)
   const balanceAmount = totalAmount - depositAmount
 
   const handlePayDeposit = () => {
     const params = new URLSearchParams({
-      code: booking.confirmationCode,
-      id: String(booking.reservationId),
-      name: booking.name,
-      email: booking.email,
-      amount: String(depositAmount),
-      total: String(totalAmount),
-      room: roomName,
-      checkIn: booking.checkIn,
+      code:     booking.confirmationCode,
+      id:       String(booking.reservationId),
+      name:     booking.name,
+      email:    booking.email,
+      amount:   String(depositAmount),
+      total:    String(totalAmount),
+      room:     roomName,
+      checkIn:  booking.checkIn,
       checkOut: booking.checkOut,
     })
     router.push(`/pay-deposit?${params.toString()}`)
@@ -293,7 +322,7 @@ export default function BookingConfirmationClient() {
           <a href="/my-booking" className="text-ocean-500 hover:underline font-medium">
             Find your booking
           </a>{' '}
-          anytime using your confirmation code and email — we'll reach out within 24 hours to confirm.
+          anytime using your confirmation code and email — we&apos;ll reach out within 24 hours to confirm.
         </p>
       </div>
     </section>
