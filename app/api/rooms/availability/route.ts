@@ -15,7 +15,7 @@ const sql = neon(process.env.DATABASE_URL!)
  *   { rooms: Array<{ id, roomNumber, type, status, capacity, pricePerNight, description, amenities, images, available: boolean }> }
  *
  * A room is considered unavailable for the requested window if it has at least
- * one reservation whose status is NOT 'cancelled' or 'checked_out' and whose
+ * one reservation whose status is 'confirmed' or 'checked_in' and whose
  * date range overlaps the requested window (standard half-open interval overlap:
  *   existing.checkIn < requested.checkOut AND existing.checkOut > requested.checkIn)
  */
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
   const conflictRows = await sql`
     SELECT DISTINCT room_id
     FROM reservations
-    WHERE status NOT IN ('cancelled', 'checked_out')
+    WHERE status IN ('confirmed', 'checked_in')
       AND room_id IS NOT NULL
       AND check_in  < ${checkOut}::timestamptz
       AND check_out > ${checkIn}::timestamptz
