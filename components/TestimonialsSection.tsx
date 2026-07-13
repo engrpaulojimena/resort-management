@@ -39,22 +39,22 @@ const reviews = [
 
 export default function TestimonialsSection() {
   return (
-    <section className="py-24 bg-gradient-to-b from-ocean-600 to-ocean-800 overflow-hidden relative">
-      {/* Wave top */}
-      <div className="absolute top-0 left-0 right-0">
-        <svg viewBox="0 0 1440 60" preserveAspectRatio="none" className="w-full h-16 fill-white">
-          <path d="M0,30 C360,55 1080,0 1440,30 L1440,0 L0,0 Z" />
-        </svg>
+    <section className="py-24 bg-ink-900 overflow-hidden relative">
+      {/* Lantern-line top divider, replacing the stock wave-SVG */}
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-center gap-14 pt-10">
+        {[...Array(11)].map((_, i) => (
+          <span key={i} className="w-1 h-1 rounded-full bg-sand-400 animate-lantern-glow" style={{ animationDelay: `${i * 0.25}s` }} />
+        ))}
       </div>
 
-      {/* Background decoration */}
-      <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-ocean-400/20 rounded-full blur-3xl -translate-y-1/2" />
-      <div className="absolute top-1/2 right-1/4 w-80 h-80 bg-ocean-300/15 rounded-full blur-3xl -translate-y-1/2" />
+      {/* Background glow */}
+      <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-ocean-700/20 rounded-full blur-3xl -translate-y-1/2" />
+      <div className="absolute top-1/2 right-1/4 w-80 h-80 bg-sand-600/10 rounded-full blur-3xl -translate-y-1/2" />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-14">
-          <p className="text-ocean-300 font-semibold text-sm tracking-[0.2em] uppercase mb-3">Guest Stories</p>
+          <p className="text-sand-400 font-semibold text-sm tracking-[0.2em] uppercase mb-3">Guest Stories</p>
           <h2 className="font-display text-3xl md:text-4xl lg:text-5xl text-white leading-tight mb-4">
             What Our Guests Say
           </h2>
@@ -69,9 +69,9 @@ export default function TestimonialsSection() {
         {/* Review cards */}
         <div className="grid md:grid-cols-2 gap-6">
           {reviews.map((r) => (
-            <div key={r.name} className="glass rounded-3xl p-6 card-hover">
+            <div key={r.name} className="glass rounded-2xl p-6 card-hover">
               {/* Quote icon */}
-              <Quote className="w-8 h-8 text-ocean-300 mb-4 opacity-60" />
+              <Quote className="w-8 h-8 text-sand-400 mb-4 opacity-60" />
 
               {/* Text */}
               <p className="text-white/90 leading-relaxed mb-6 text-base">"{r.text}"</p>
@@ -79,7 +79,7 @@ export default function TestimonialsSection() {
               {/* Reviewer */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-ocean-400/50 flex items-center justify-center text-xl">
+                  <div className="w-10 h-10 rounded-full bg-ocean-700/60 flex items-center justify-center text-xl">
                     {r.emoji}
                   </div>
                   <div>

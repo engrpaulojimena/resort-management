@@ -6,24 +6,18 @@ import { Anchor, Sun, Shell } from 'lucide-react'
 const highlights = [
   {
     icon: Anchor,
-    title: 'Beachfront Location',
-    desc: 'Directly overlooking the beachfront with breathtaking sunsets every evening.',
-    color: 'text-ocean-500',
-    bg: 'bg-ocean-50',
+    title: 'Volcanic Shoreline',
+    desc: 'A private stretch of dark, mineral-rich sand — shaped by Mt. Pinatubo, unlike any beach in the country.',
   },
   {
     icon: Sun,
-    title: 'Stunning Sunsets',
-    desc: 'Watch the sun dip below the horizon from our infinity pool every night.',
-    color: 'text-sand-600',
-    bg: 'bg-sand-50',
+    title: 'Dusk at the Pool',
+    desc: 'Watch the sun drop below the water from the infinity pool, every evening without fail.',
   },
   {
     icon: Shell,
     title: 'A-Frame Villas',
-    desc: 'Unique architect-designed A-frame cottages with modern interiors and poolside access.',
-    color: 'text-palm-500',
-    bg: 'bg-green-50',
+    desc: 'Timber-and-nipa cottages built in the classic A-frame silhouette, lit by lantern at night.',
   },
 ]
 
@@ -36,31 +30,32 @@ export default function AboutSection() {
           <div>
             <p className="section-label mb-3">Welcome to Kekamiya</p>
             <h2 className="section-title mb-6">
-              Your Perfect{' '}
-              <span className="text-gradient-ocean">Beach Escape</span>
-              <br />in Zambales
+              A Coastline{' '}
+              <span className="italic font-display text-ocean-700">Reshaped by Fire</span>,
+              <br />Softened by Tide
             </h2>
-            <p className="text-gray-600 text-lg leading-relaxed mb-6">
-              Nestled along the shores of Botolan, Zambales, Kekamiya Beach Resort is where the waves
-              whisper and time slows down. Our signature A-frame villas sit beside a stunning infinity
-              pool that seems to merge with the open horizon.
+            <p className="text-ink-600 text-lg leading-relaxed mb-6">
+              Nestled along the shores of Botolan, Zambales, Kekamiya sits on sand made dark by
+              the 1991 Pinatubo eruption — a landscape found nowhere else in the Philippines. Our
+              A-frame villas sit beside an infinity pool that seems to merge with the horizon.
             </p>
-            <p className="text-gray-600 leading-relaxed mb-8">
-              Whether you're here for a family getaway, a romantic retreat, or an adventurous trip —
-              wake up to golden sunrises, swim in our crystal-clear pool, and fall asleep to the
-              sound of waves. This is more than a resort — it's a feeling.
+            <p className="text-ink-600 leading-relaxed mb-8">
+              Whether you're here for a family getaway, a quiet retreat, or a weekend with
+              friends — wake up to slow sunrises, swim until the light turns gold, and fall
+              asleep to the sound of the tide. This is more than a resort. It's a coastline
+              with a history.
             </p>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-6 pt-6 border-t border-gray-100">
+            <div className="grid grid-cols-3 gap-6 pt-6 border-t border-ink-100">
               {[
                 { num: '500+', label: 'Happy Guests' },
-                { num: '10+', label: 'Cabin' },
+                { num: '10+', label: 'Villas & Cabins' },
                 { num: '★ 5.0', label: 'Guest Rating' },
               ].map((s) => (
                 <div key={s.label}>
-                  <div className="font-display text-2xl font-bold text-ocean-600">{s.num}</div>
-                  <div className="text-gray-500 text-sm mt-0.5">{s.label}</div>
+                  <div className="font-display text-2xl font-semibold text-ocean-700">{s.num}</div>
+                  <div className="text-ink-400 text-sm mt-0.5">{s.label}</div>
                 </div>
               ))}
             </div>
@@ -68,13 +63,13 @@ export default function AboutSection() {
 
           {/* Photo collage */}
           <div className="relative">
-            <div className="absolute -top-10 -right-10 w-80 h-80 bg-ocean-100 rounded-full blur-3xl opacity-50 -z-10" />
+            <div className="absolute -top-10 -right-10 w-80 h-80 bg-ocean-100 rounded-full blur-3xl opacity-40 -z-10" />
 
             {/* Main big photo */}
-            <div className="rounded-3xl overflow-hidden shadow-2xl shadow-ocean-200 mb-4 relative h-72">
+            <div className="rounded-2xl overflow-hidden shadow-2xl shadow-ink-900/10 mb-4 relative h-72 border border-ink-100">
               <Image
                 src="/images/resort-villas-daytime.jpg"
-                alt="Kekamiya A-frame villas with swimming pool"
+                alt="Kekamiya A-frame villas beside the swimming pool"
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 50vw"
@@ -83,16 +78,16 @@ export default function AboutSection() {
 
             {/* Two smaller photos */}
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="rounded-2xl overflow-hidden shadow-lg relative h-44">
+              <div className="rounded-xl overflow-hidden shadow-lg relative h-44 border border-ink-100">
                 <Image
                   src="/images/19286.jpg"
-                  alt="Sunset view from Kekamiya pool"
+                  alt="Sunset view from the Kekamiya pool"
                   fill
                   className="object-cover"
                   sizes="25vw"
                 />
               </div>
-              <div className="rounded-2xl overflow-hidden shadow-lg relative h-44">
+              <div className="rounded-xl overflow-hidden shadow-lg relative h-44 border border-ink-100">
                 <Image
                   src="/images/resort-pavilion-pool.jpg"
                   alt="Kekamiya beachfront pavilion overlooking the pool and shore"
@@ -103,18 +98,16 @@ export default function AboutSection() {
               </div>
             </div>
 
-            {/* Highlight cards */}
-            <div className="grid grid-cols-1 gap-3">
+            {/* Highlight list — a quiet, rule-divided list rather than colored icon tiles */}
+            <div className="divide-y divide-ink-100 border-t border-ink-100">
               {highlights.map((h) => {
                 const Icon = h.icon
                 return (
-                  <div key={h.title} className={`flex items-start gap-4 p-4 rounded-2xl ${h.bg} card-hover`}>
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-white shadow-sm shrink-0`}>
-                      <Icon className={`w-5 h-5 ${h.color}`} />
-                    </div>
+                  <div key={h.title} className="flex items-start gap-4 py-4">
+                    <Icon className="w-5 h-5 text-ocean-600 mt-0.5 shrink-0" />
                     <div>
-                      <h4 className="font-semibold text-gray-800 mb-0.5">{h.title}</h4>
-                      <p className="text-gray-500 text-sm leading-relaxed">{h.desc}</p>
+                      <h4 className="font-semibold text-ink-800 mb-0.5">{h.title}</h4>
+                      <p className="text-ink-400 text-sm leading-relaxed">{h.desc}</p>
                     </div>
                   </div>
                 )

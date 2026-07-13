@@ -17,17 +17,20 @@ export default function BookingCTA() {
   return (
     <section className="py-20 bg-white">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-br from-ocean-500 via-ocean-600 to-ocean-700 rounded-3xl p-8 md:p-12 shadow-2xl shadow-ocean-200 relative overflow-hidden">
-          {/* Background decoration */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+        <div className="bg-ink-900 rounded-2xl p-8 md:p-12 shadow-2xl shadow-ink-900/20 relative overflow-hidden">
+          {/* Lantern-line accent along the top edge */}
+          <div className="absolute top-0 left-0 right-0 flex items-center justify-center gap-16 pt-6">
+            {[...Array(7)].map((_, i) => (
+              <span key={i} className="w-1 h-1 rounded-full bg-sand-400 animate-lantern-glow" style={{ animationDelay: `${i * 0.35}s` }} />
+            ))}
+          </div>
 
           <div className="relative">
             <div className="text-center mb-8">
-              <p className="text-ocean-200 text-sm font-semibold tracking-widest uppercase mb-2">
+              <p className="text-sand-400 text-sm font-semibold tracking-widest uppercase mb-2">
                 Check Availability
               </p>
-              <h2 className="font-display text-3xl md:text-4xl text-white font-bold mb-2">
+              <h2 className="font-display text-3xl md:text-4xl text-white font-semibold mb-2">
                 Ready to Escape to Paradise?
               </h2>
               <p className="text-ocean-200 text-base">
@@ -43,12 +46,12 @@ export default function BookingCTA() {
                     Check In
                   </label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ocean-400" />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ocean-300" />
                     <input
                       type="date"
                       value={checkIn}
                       onChange={e => setCheckIn(e.target.value)}
-                      className="w-full bg-white/15 border border-white/20 text-white placeholder-white/50 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-white/40 backdrop-blur-sm"
+                      className="w-full bg-white/10 border border-white/20 text-white placeholder-white/50 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sand-400/60 backdrop-blur-sm"
                       required
                     />
                   </div>
@@ -59,12 +62,12 @@ export default function BookingCTA() {
                     Check Out
                   </label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ocean-400" />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ocean-300" />
                     <input
                       type="date"
                       value={checkOut}
                       onChange={e => setCheckOut(e.target.value)}
-                      className="w-full bg-white/15 border border-white/20 text-white placeholder-white/50 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-white/40 backdrop-blur-sm"
+                      className="w-full bg-white/10 border border-white/20 text-white placeholder-white/50 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sand-400/60 backdrop-blur-sm"
                       required
                     />
                   </div>
@@ -75,14 +78,14 @@ export default function BookingCTA() {
                     Guests
                   </label>
                   <div className="relative">
-                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ocean-400" />
+                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ocean-300" />
                     <select
                       value={guests}
                       onChange={e => setGuests(e.target.value)}
-                      className="w-full bg-white/15 border border-white/20 text-white rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-white/40 backdrop-blur-sm appearance-none"
+                      className="w-full bg-white/10 border border-white/20 text-white rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sand-400/60 backdrop-blur-sm appearance-none"
                     >
                       {[1,2,3,4,5,6,7,8].map(n => (
-                        <option key={n} value={n} className="text-gray-900">{n} Guest{n > 1 ? 's' : ''}</option>
+                        <option key={n} value={n} className="text-ink-900">{n} Guest{n > 1 ? 's' : ''}</option>
                       ))}
                     </select>
                   </div>
@@ -91,7 +94,7 @@ export default function BookingCTA() {
                 <div className="md:col-span-1 flex items-end">
                   <button
                     type="submit"
-                    className="w-full flex items-center justify-center gap-2 bg-white text-ocean-600 font-bold py-3 px-6 rounded-xl hover:bg-ocean-50 transition-all duration-200 shadow-lg hover:shadow-xl active:scale-95 text-sm"
+                    className="w-full flex items-center justify-center gap-2 bg-sand-500 text-ink-900 font-bold py-3 px-6 rounded-xl hover:bg-sand-400 transition-all duration-200 shadow-lg hover:shadow-xl active:scale-95 text-sm"
                   >
                     <Search className="w-4 h-4" />
                     Search Rooms

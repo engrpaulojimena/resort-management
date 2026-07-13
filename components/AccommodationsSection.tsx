@@ -32,11 +32,11 @@ const TYPE_LABEL: Record<RoomType, string> = {
 }
 
 const TYPE_TAG: Record<RoomType, { label: string; color: string }> = {
-  standard: { label: 'Great Value',       color: 'bg-palm-500' },
-  deluxe:   { label: 'Most Popular',      color: 'bg-ocean-500' },
+  standard: { label: 'Great Value',       color: 'bg-palm-600' },
+  deluxe:   { label: 'Most Popular',      color: 'bg-ocean-700' },
   suite:    { label: 'Romantic Escape',   color: 'bg-coral-500' },
-  villa:    { label: 'Perfect for Groups', color: 'bg-sand-500' },
-  cottage:  { label: 'Cozy & Private',    color: 'bg-palm-500' },
+  villa:    { label: 'Perfect for Groups', color: 'bg-sand-600' },
+  cottage:  { label: 'Cozy & Private',    color: 'bg-palm-600' },
 }
 
 // Fall back to local images when the room has no Cloudinary/remote images saved
@@ -92,7 +92,7 @@ export default function AccommodationsSection() {
             <p className="section-label mb-3">Where You'll Stay</p>
             <h2 className="section-title">
               Iconic A-Frame Villas,{' '}
-              <span className="text-gradient-ocean">Unforgettable Views</span>
+              <span className="italic font-display text-ocean-700">Unforgettable Views</span>
             </h2>
           </div>
           <Link href="/accommodations" className="btn-outline whitespace-nowrap self-start md:self-auto">
@@ -110,7 +110,7 @@ export default function AccommodationsSection() {
 
         {/* Error state */}
         {!loading && error && (
-          <div className="flex flex-col items-center gap-3 py-16 text-gray-500">
+          <div className="flex flex-col items-center gap-3 py-16 text-ink-400">
             <AlertCircle className="w-8 h-8 text-coral-400" />
             <p className="text-sm">{error}</p>
           </div>
@@ -125,27 +125,11 @@ export default function AccommodationsSection() {
               const name       = getRoomDisplayName(room)
               const price      = parseFloat(room.pricePerNight)
               const amenities  = room.amenities?.slice(0, 3) ?? []
-              const isAvailable    = room.status === 'available'
-              const isMaintenance  = room.status === 'maintenance'
-              const isUnavailable  = !isAvailable // reserved, occupied, or maintenance
-
-              // Status badge config
-              const statusBadge = isMaintenance
-                ? { label: 'Under Maintenance', bg: 'bg-orange-600/85' }
-                : room.status === 'reserved'
-                ? { label: 'Reserved',  bg: 'bg-blue-700/80' }
-                : room.status === 'occupied'
-                ? { label: 'Occupied',  bg: 'bg-gray-700/80' }
-                : null
 
               return (
                 <div
                   key={room.id}
-                  className={`group rounded-3xl overflow-hidden border shadow-sm transition-all duration-300 bg-white ${
-                    isUnavailable
-                      ? 'border-gray-200 opacity-75'
-                      : 'border-gray-100 hover:shadow-xl hover:-translate-y-1'
-                  }`}
+                  className="group rounded-2xl overflow-hidden border border-ink-100 shadow-sm transition-all duration-300 bg-white hover:shadow-xl hover:-translate-y-1"
                 >
                   {/* Room photo */}
                   <div className="relative h-52 overflow-hidden">
@@ -153,34 +137,24 @@ export default function AccommodationsSection() {
                       src={image}
                       alt={name}
                       fill
-                      className={`object-cover transition-transform duration-700 ${isUnavailable ? 'grayscale-[30%]' : 'group-hover:scale-105'}`}
+                      className="object-cover transition-transform duration-700 group-hover:scale-105"
                       sizes="(max-width: 768px) 100vw, 33vw"
                     />
                     {/* Type tag */}
                     <span className={`absolute top-4 left-4 ${tag.color} text-white text-xs font-bold px-3 py-1 rounded-full z-10`}>
                       {tag.label}
                     </span>
-                    {/* Status badge */}
-                    {statusBadge && (
-                      <span className={`absolute top-4 right-4 ${statusBadge.bg} text-white text-xs font-semibold px-3 py-1 rounded-full z-10 backdrop-blur-sm`}>
-                        {statusBadge.label}
-                      </span>
-                    )}
-                    {/* Overlay for unavailable */}
-                    {isUnavailable && (
-                      <div className="absolute inset-0 bg-white/10" />
-                    )}
                   </div>
 
                   {/* Room details */}
                   <div className="p-6">
-                    <h3 className="font-display text-xl font-bold text-gray-900 mb-1">{name}</h3>
+                    <h3 className="font-display text-xl font-bold text-ink-900 mb-1">{name}</h3>
 
                     {room.description && (
-                      <p className="text-sm text-gray-500 mb-3 line-clamp-2">{room.description}</p>
+                      <p className="text-sm text-ink-400 mb-3 line-clamp-2">{room.description}</p>
                     )}
 
-                    <div className="flex items-center gap-4 text-gray-500 text-sm mb-4">
+                    <div className="flex items-center gap-4 text-ink-400 text-sm mb-4">
                       <span className="flex items-center gap-1">
                         <Users className="w-3.5 h-3.5" /> Up to {room.capacity} Guests
                       </span>
@@ -192,33 +166,27 @@ export default function AccommodationsSection() {
                     {amenities.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-5">
                         {amenities.map((f) => (
-                          <span key={f} className={`text-xs font-medium px-3 py-1 rounded-full ${isUnavailable ? 'bg-gray-100 text-gray-400' : 'bg-ocean-50 text-ocean-600'}`}>
+                          <span key={f} className="text-xs font-medium px-3 py-1 rounded-full bg-ocean-50 text-ocean-600">
                             {f}
                           </span>
                         ))}
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between pt-4 border-t border-ink-100">
                       <div>
-                        <span className="text-xs text-gray-400">Starting at</span>
-                        <div className={`font-display text-2xl font-bold ${isUnavailable ? 'text-gray-400' : 'text-ocean-600'}`}>
+                        <span className="text-xs text-ink-400">Starting at</span>
+                        <div className="font-display text-2xl font-bold text-ocean-600">
                           ₱{price.toLocaleString()}
-                          <span className="text-sm font-normal text-gray-400">/night</span>
+                          <span className="text-sm font-normal text-ink-400">/night</span>
                         </div>
                       </div>
-                      {isAvailable ? (
-                        <Link
-                          href={`/book?roomId=${room.id}`}
-                          className="btn-primary text-sm px-5 py-2.5"
-                        >
-                          Book
-                        </Link>
-                      ) : (
-                        <span className="text-xs font-semibold px-4 py-2.5 rounded-xl cursor-not-allowed bg-gray-100 text-gray-400">
-                          Unavailable
-                        </span>
-                      )}
+                      <Link
+                        href={`/book?roomId=${room.id}`}
+                        className="btn-primary text-sm px-5 py-2.5"
+                      >
+                        Book
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -229,7 +197,7 @@ export default function AccommodationsSection() {
 
         {/* Empty state */}
         {!loading && !error && rooms.length === 0 && (
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-16 text-ink-400">
             <BedDouble className="w-10 h-10 mx-auto mb-3 opacity-40" />
             <p className="text-sm">No rooms available at the moment. Please check back soon.</p>
           </div>

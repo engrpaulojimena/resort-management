@@ -4,8 +4,8 @@
 
 @layer base {
   :root {
-    --font-display: 'Playfair Display', Georgia, serif;
-    --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'Manrope', system-ui, sans-serif;
   }
 
   html {
@@ -18,39 +18,61 @@
 }
 
 @layer components {
+  /* Solid, confident fills instead of multi-stop gradient pills — the accent
+     lives in the hover state (ember underline), not the button itself. */
   .btn-primary {
-    @apply inline-flex items-center gap-2 bg-gradient-to-r from-ocean-500 to-ocean-600 hover:from-ocean-600 hover:to-ocean-700 text-white font-semibold px-6 py-3 rounded-full transition-all duration-300 shadow-lg shadow-ocean-900/20 hover:shadow-xl hover:shadow-ocean-700/30 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sand-400;
+    @apply relative inline-flex items-center gap-2 bg-ocean-700 hover:bg-ocean-800 text-white font-semibold px-6 py-3 rounded-full transition-all duration-300 shadow-lg shadow-ink-900/10 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sand-400;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/35 hover:border-white/60 font-semibold px-6 py-3 rounded-full transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white/70;
+    @apply inline-flex items-center gap-2 bg-ink-900/30 hover:bg-ink-900/45 backdrop-blur-md text-white border border-white/35 hover:border-white/60 font-semibold px-6 py-3 rounded-full transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white/70;
   }
 
   .btn-outline {
-    @apply inline-flex items-center gap-2 border-2 border-ocean-500 text-ocean-600 hover:bg-ocean-500 hover:text-white font-semibold px-6 py-3 rounded-full transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ocean-400;
+    @apply inline-flex items-center gap-2 border-2 border-ocean-600 text-ocean-700 hover:bg-ocean-700 hover:text-white font-semibold px-6 py-3 rounded-full transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ocean-400;
   }
 
+  /* Eyebrow label: a short dash instead of a decorative bullet — reads like
+     a caption rule, not a badge. */
   .section-label {
-    @apply inline-flex items-center gap-2 text-sand-600 font-bold text-xs tracking-[0.25em] uppercase;
+    @apply inline-flex items-center gap-2.5 text-sand-700 font-bold text-xs tracking-[0.25em] uppercase;
   }
 
   .section-label::before {
     content: '';
-    @apply w-6 h-[2px] bg-sand-500 rounded-full;
+    @apply w-7 h-[2px] bg-sand-500 rounded-full;
   }
 
   .section-title {
-    @apply font-display text-3xl md:text-4xl lg:text-5xl text-ocean-900 leading-tight tracking-tight;
+    @apply font-display text-3xl md:text-4xl lg:text-5xl text-ink-900 leading-[1.1] tracking-tight;
   }
 
   .card-hover {
-    @apply transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-ocean-900/15;
+    @apply transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-ink-900/10;
+  }
+
+  /* Lantern line — the site's signature divider. A thin rule strung with
+     warm glowing dots, echoing the string lights between the A-frame posts
+     at Kekamiya at night. Used in place of the generic wave-SVG divider. */
+  .lantern-line {
+    @apply relative flex items-center justify-center gap-[3.25rem] h-px w-full;
+  }
+  .lantern-line::before,
+  .lantern-line::after {
+    content: '';
+    @apply flex-1 h-px bg-current opacity-20;
+  }
+  .lantern-dots {
+    @apply flex items-center gap-[3.25rem] shrink-0;
+  }
+  .lantern-dot {
+    @apply w-1.5 h-1.5 rounded-full bg-sand-400 animate-lantern-glow shadow-[0_0_8px_2px_rgba(219,143,35,0.55)];
   }
 }
 
 @layer utilities {
   .text-gradient-ocean {
-    @apply bg-gradient-to-r from-ocean-400 via-ocean-500 to-palm-500 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-ocean-300 via-ocean-400 to-sand-300 bg-clip-text text-transparent;
   }
 
   .text-gradient-sand {
@@ -58,11 +80,11 @@
   }
 
   .bg-gradient-ocean {
-    @apply bg-gradient-to-br from-ocean-600 via-ocean-500 to-ocean-700;
+    @apply bg-gradient-to-br from-ocean-800 via-ocean-700 to-ink-900;
   }
 
   .glass {
-    @apply bg-white/10 backdrop-blur-md border border-white/20 shadow-[0_4px_24px_rgba(0,0,0,0.12)];
+    @apply bg-ink-900/25 backdrop-blur-md border border-white/20 shadow-[0_4px_24px_rgba(0,0,0,0.18)];
   }
 
   .scrollbar-hide {
@@ -74,29 +96,23 @@
   }
 }
 
-/* Wave SVG divider */
-.wave-top {
-  position: relative;
-  margin-top: -2px;
-}
-
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #f0f9ff;
+  background: #F5F1E7;
 }
 ::-webkit-scrollbar-thumb {
-  background: #0090c7;
+  background: #246058;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #006da0;
+  background: #1D4C46;
 }
 
 /* Selection */
 ::selection {
-  background: #f7ae3e;
-  color: #003050;
+  background: #DB8F23;
+  color: #1E1914;
 }

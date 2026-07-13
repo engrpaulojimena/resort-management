@@ -31,17 +31,19 @@ export default function Navbar() {
       className={clsx(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-700',
         scrolled
-          ? 'bg-white shadow-[0_4px_40px_rgba(0,48,80,0.10)] py-2'
+          ? 'bg-paper-light/95 backdrop-blur-sm shadow-[0_4px_40px_rgba(30,25,20,0.10)] py-2'
           : 'bg-transparent py-3'
       )}
     >
-      {/* Top gold accent line */}
+      {/* Lantern-dot accent line — appears once the page has scrolled past the hero */}
       <div className={clsx(
-        'absolute top-0 left-0 right-0 h-[2px] transition-opacity duration-700',
+        'absolute top-0 left-0 right-0 h-[2px] transition-opacity duration-700 overflow-hidden flex items-center justify-center gap-10',
         scrolled ? 'opacity-100' : 'opacity-0'
-      )}
-        style={{ background: 'linear-gradient(90deg, transparent, #f7ae3e 30%, #f7ae3e 70%, transparent)' }}
-      />
+      )}>
+        {[...Array(9)].map((_, i) => (
+          <span key={i} className="w-1 h-1 rounded-full bg-sand-500 animate-lantern-glow shrink-0" style={{ animationDelay: `${i * 0.3}s` }} />
+        ))}
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between gap-2">
 
@@ -62,14 +64,14 @@ export default function Navbar() {
           </div>
           <div className="hidden sm:flex flex-col">
             <span className={clsx(
-              'font-display font-bold tracking-wide leading-tight transition-all duration-500',
-              scrolled ? 'text-ocean-800 text-lg' : 'text-white text-xl drop-shadow-md'
+              'font-display font-semibold tracking-wide leading-tight transition-all duration-500',
+              scrolled ? 'text-ink-900 text-lg' : 'text-white text-xl drop-shadow-md'
             )}>
               Kekamiya
             </span>
             <span className={clsx(
               'text-[9px] tracking-[0.3em] uppercase font-semibold transition-all duration-500',
-              scrolled ? 'text-sand-600' : 'text-white/70 drop-shadow-sm'
+              scrolled ? 'text-sand-700' : 'text-white/70 drop-shadow-sm'
             )}>
               Beach Resort
             </span>
@@ -85,7 +87,7 @@ export default function Navbar() {
               className={clsx(
                 'relative px-4 py-2 text-[13px] font-semibold tracking-widest uppercase transition-all duration-300 group',
                 scrolled
-                  ? 'text-ocean-900 hover:text-sand-600'
+                  ? 'text-ink-800 hover:text-sand-700'
                   : 'text-white/90 hover:text-white drop-shadow-sm'
               )}
             >
@@ -104,7 +106,7 @@ export default function Navbar() {
           className={clsx(
             'hidden md:inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.18em] uppercase px-7 py-3 transition-all duration-400 hover:-translate-y-0.5 hover:shadow-xl',
             scrolled
-              ? 'bg-ocean-700 text-white hover:bg-ocean-800 shadow-lg shadow-ocean-900/20 rounded-none'
+              ? 'bg-ocean-700 text-white hover:bg-ocean-800 shadow-lg shadow-ink-900/15 rounded-none'
               : 'bg-white/10 backdrop-blur-md text-white border border-white/50 hover:bg-white/20 rounded-none'
           )}
         >
@@ -118,7 +120,7 @@ export default function Navbar() {
             className={clsx(
               'inline-flex items-center text-[10px] font-bold tracking-[0.15em] uppercase px-4 py-2.5 rounded-full transition-all duration-300 shadow-md',
               scrolled
-                ? 'bg-ocean-700 text-white shadow-ocean-900/20'
+                ? 'bg-ocean-700 text-white shadow-ink-900/15'
                 : 'bg-sand-500 text-white shadow-black/20'
             )}
           >
@@ -128,7 +130,7 @@ export default function Navbar() {
             onClick={() => setMobileOpen(!mobileOpen)}
             className={clsx(
               'p-2 rounded transition-colors',
-              scrolled ? 'text-ocean-800 hover:bg-ocean-50' : 'text-white hover:bg-white/10'
+              scrolled ? 'text-ink-800 hover:bg-ocean-50' : 'text-white hover:bg-white/10'
             )}
             aria-label="Toggle menu"
           >
@@ -139,8 +141,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-white border-t-2 border-sand-400 shadow-2xl">
-          {/* Gold accent */}
+        <div className="md:hidden bg-paper-light border-t-2 border-sand-400 shadow-2xl">
           <div className="h-px bg-gradient-to-r from-transparent via-sand-300 to-transparent" />
           <div className="px-6 py-5 flex flex-col">
             {navLinks.map((link) => (
@@ -148,7 +149,7 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className="px-2 py-3.5 text-[12px] font-bold tracking-[0.2em] uppercase text-ocean-900 hover:text-sand-600 border-b border-gray-100 last:border-0 transition-colors"
+                className="px-2 py-3.5 text-[12px] font-bold tracking-[0.2em] uppercase text-ink-900 hover:text-sand-700 border-b border-ink-100 last:border-0 transition-colors"
               >
                 {link.label}
               </Link>
